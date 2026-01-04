@@ -7,12 +7,10 @@
  * 서버-클라이언트 간 WebSocket 이벤트 정의
  */
 
-/**
- * Type References (see data-model.md for full definitions):
- * - GameRoom: 게임방 전체 상태
- * - Player: 플레이어 정보
- * - GoldenKeyCard: 황금열쇠 카드
- */
+import { GameRoom, Player, GoldenKeyCard } from './types';
+
+// We should move ErrorCode to types or similar if we want to avoid circular, but simplified:
+// Just import specific types from './types'
 
 // ============================================================================
 // Client → Server Events
@@ -121,10 +119,8 @@ export interface RoomCreatedPayload {
 }
 
 export interface PlayerJoinedPayload {
-  /** @see Player in data-model.md */
-  player: unknown;
-  /** @see Player[] in data-model.md */
-  players: unknown[];
+  player: Player;
+  players: Player[];
 }
 
 export interface GameStartedPayload {
@@ -133,8 +129,7 @@ export interface GameStartedPayload {
 }
 
 export interface StateUpdatedPayload {
-  /** @see GameRoom in data-model.md */
-  gameState: unknown;
+  gameState: GameRoom;
 }
 
 export interface TurnChangedPayload {
@@ -143,8 +138,7 @@ export interface TurnChangedPayload {
 }
 
 export interface GoldenKeyDrawnPayload {
-  /** @see GoldenKeyCard in data-model.md */
-  card: unknown;
+  card: GoldenKeyCard;
 }
 
 export interface PlayerBankruptedPayload {
@@ -152,7 +146,7 @@ export interface PlayerBankruptedPayload {
   creditorId?: string;
   assets: {
     money: number;
-    tileIds: string[];
+    tileIds: number[];
   };
 }
 
@@ -262,6 +256,8 @@ export const ClientEvents = {
   ISLAND_ACTION: 'island-action',
   END_TURN: 'end-turn',
   DECLARE_BANKRUPTCY: 'declare-bankruptcy',
+  USE_TRAVEL: 'use-travel',
+  USE_HOLDABLE_CARD: 'use-holdable-card',
 } as const;
 
 export const ServerEvents = {
@@ -280,3 +276,4 @@ export const ServerEvents = {
 
 export type ClientEventName = typeof ClientEvents[keyof typeof ClientEvents];
 export type ServerEventName = typeof ServerEvents[keyof typeof ServerEvents];
+
