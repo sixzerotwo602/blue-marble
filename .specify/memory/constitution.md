@@ -1,50 +1,184 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# <!--
+
+# SYNC IMPACT REPORT
+
+Version Change: 1.0.0 → 1.1.0 (MINOR: 새로운 원칙 섹션 추가)
+
+Added Sections:
+
+- 개발 원칙 (Development Principles): KISS, YAGNI, DRY, SOLID
+
+Modified Sections: 없음
+Removed Sections: 없음
+
+Templates Status:
+
+- .specify/templates/plan-template.md: ✅ Constitution Check 섹션 호환
+- .specify/templates/spec-template.md: ✅ User Stories 구조 호환
+- .specify/templates/tasks-template.md: ✅ Phase 기반 구조 호환
+
+# Follow-up TODOs: 없음
+
+-->
+
+# 부루마블 스마트 어시스턴트 Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. 서버 중심 진실의 원천 (Server as Source of Truth)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+모든 게임 상태(자산, 턴 순서, 위치, 건물 소유권)는 서버가 유일한 기준(Source of Truth)이다.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+- 클라이언트는 서버 상태의 렌더링 역할만 수행하며, 자체적으로 게임 로직을 판정하지 않는다.
+- 모든 상태 변경은 서버 API를 통해서만 이루어져야 한다.
+- 네트워크 단절 시 Global Pause가 발동되며, 복귀 전까지 모든 클라이언트 조작이 차단된다.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**근거**: 분쟁 제거 및 데이터 무결성 확보.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. QR 기반 엄격 검증 (QR-Based Strict Validation)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+이동 및 강제 이동은 반드시 도착지 QR 스캔을 통해 서버에서 검증되어야 한다.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- 일반 이동: 도착지 QR 스캔 시 서버가 위치 업데이트.
+- 강제 이동(황금열쇠, 우주여행 등): 지정된 칸의 QR을 스캔해야만 락(Lock)이 풀리고 턴 진행 가능.
+- 잘못된 QR 스캔 시 명확한 에러 메시지("여기가 아닙니다") 출력 및 진행 차단.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**근거**: 물리적 보드 이동과 디지털 상태의 동기화 보장.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### III. 양심 기반 신고 시스템 (Honor System for Unverifiable Actions)
+
+디지털로 검증 불가능한 행동(실물 주사위 결과, 무인도/감옥 탈출 시도)은 플레이어의 양심에 맡긴다.
+
+- 무인도/감옥 탈출: [더블 탈출 성공] / [실패] / [비용 지불 탈출] 3개 버튼 노출.
+- 주사위 결과: 사용자가 직접 입력하며, 앱은 이를 신뢰한다.
+
+**근거**: 실물 주사위의 "손맛"을 유지하면서 디지털 편의성 제공.
+
+### IV. 즉시 파산 처리 (Immediate Bankruptcy Resolution)
+
+파산 발생 시 자산 이전은 중단 없이 즉시 처리되어야 한다.
+
+- **플레이어 간 파산**: 파산자의 모든 현금 및 도시(건물 포함) 소유권이 채권자에게 즉시 승계.
+- **은행(세금 등) 파산**: 파산자의 모든 자산은 '소유주 없음' 상태로 초기화 (누구나 구매 가능).
+- 파산 로직은 반드시 서버 단위 테스트(Unit Test)로 검증되어야 한다.
+
+**근거**: 복잡한 자산 이전 로직의 정확성 보장 및 게임 흐름 유지.
+
+### V. 턴 종료 명시적 선언 (Explicit Turn Completion)
+
+턴 종료는 반드시 사용자가 [턴 종료] 버튼을 눌러 명시적으로 선언해야 한다.
+
+- 모든 행동(건설/지불 등) 완료 후에만 턴 종료 가능.
+- Undo(되돌리기) 불가 원칙.
+- 턴 종료 후에만 다음 플레이어에게 권한 이동.
+
+**근거**: 실수 방지 및 의도적 행동 보장.
+
+### VI. 연결 복원성 (Connection Resilience)
+
+네트워크 연결 끊김에 대한 명확한 정책을 준수한다.
+
+- 연결 끊김 시 Global Pause 발동.
+- 3분(설정 가능) 내 미복귀 시 이탈 처리.
+- 이탈자 턴 도달 시 자동 파산(은행 귀속) 처리.
+
+**근거**: 게임 진행 보장 및 대기 시간 최소화.
+
+## 개발 원칙 (Development Principles)
+
+### VII. KISS (Keep It Simple, Stupid)
+
+모든 구현은 가능한 한 단순해야 한다.
+
+- 복잡한 솔루션보다 단순한 솔루션을 우선한다.
+- 코드는 읽기 쉽고 이해하기 쉬워야 한다.
+- 불필요한 추상화를 피한다.
+
+**근거**: 단순한 코드는 버그가 적고 유지보수가 용이하다.
+
+### VIII. YAGNI (You Aren't Gonna Need It)
+
+현재 필요하지 않은 기능은 구현하지 않는다.
+
+- "나중에 필요할 것 같다"는 이유로 미리 구현하지 않는다.
+- 실제 요구사항이 발생했을 때만 기능을 추가한다.
+- 과도한 일반화를 피한다.
+
+**근거**: 불필요한 코드는 복잡성과 유지보수 비용을 증가시킨다.
+
+### IX. DRY (Don't Repeat Yourself)
+
+동일한 로직은 한 곳에서만 정의한다.
+
+- 중복 코드는 공통 함수/모듈로 추출한다.
+- 매직 넘버와 하드코딩된 문자열은 상수로 정의한다.
+- 단, 과도한 추상화로 인한 복잡성 증가는 피한다 (KISS와 균형).
+
+**근거**: 중복 제거는 일관성을 보장하고 수정 범위를 최소화한다.
+
+### X. SOLID 원칙
+
+객체지향 설계의 5대 원칙을 준수한다.
+
+- **S - 단일 책임 원칙 (SRP)**: 클래스/모듈은 하나의 책임만 가진다.
+- **O - 개방-폐쇄 원칙 (OCP)**: 확장에는 열려 있고, 수정에는 닫혀 있어야 한다.
+- **L - 리스코프 치환 원칙 (LSP)**: 하위 타입은 상위 타입을 대체할 수 있어야 한다.
+- **I - 인터페이스 분리 원칙 (ISP)**: 클라이언트가 사용하지 않는 인터페이스에 의존하지 않는다.
+- **D - 의존성 역전 원칙 (DIP)**: 상위 모듈이 하위 모듈에 의존하지 않고, 추상화에 의존한다.
+
+**근거**: 유연하고 확장 가능한 아키텍처 구축의 기반.
+
+## 기술 제약사항 (Technical Constraints)
+
+### 호환성
+
+- **타겟 보드판**: 씨앗사 부루마블 클래식 (세계여행) 버전만 지원.
+- 다른 버전(우주여행 등)에서는 QR 및 데이터가 호환되지 않음.
+- DB의 지역명(KEY)과 임대료 데이터는 해당 버전의 룰북을 기준으로 하드코딩.
+
+### 실시간 통신
+
+- 서버-클라이언트 간 실시간 양방향 통신 필수 (WebSocket 권장).
+- 상태 변경 시 모든 클라이언트에 즉시 브로드캐스트.
+
+### 보안
+
+- QR 코드는 위치 식별자만 포함하며, 게임 로직 정보는 서버에서만 처리.
+- 클라이언트 요청에 대한 서버 측 검증 필수.
+
+## 품질 게이트 (Quality Gates)
+
+### 필수 테스트
+
+- **파산 로직 Unit Test**: 플레이어 간 파산, 은행 파산 시나리오 모두 테스트 필수.
+- **QR 검증 Integration Test**: 올바른/잘못된 QR 스캔 시나리오 테스트 필수.
+- **연결 끊김 시나리오 Test**: Global Pause 및 이탈 처리 로직 테스트 필수.
+
+### 성능 기준
+
+- 게임 플레이 속도 30% 이상 향상 (기존 아날로그 대비).
+- QR 스캔 후 응답 시간 < 500ms.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+이 헌법은 프로젝트의 모든 기술적 결정 및 구현 사항에 우선한다.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+### 수정 절차
+
+1. 수정 제안서 작성 및 팀 검토.
+2. 영향받는 모든 문서 및 코드 변경 사항 식별.
+3. 버전 번호 업데이트 (MAJOR.MINOR.PATCH 규칙 준수).
+4. 관련 마이그레이션 계획 수립 (필요 시).
+
+### 버전 정책
+
+- **MAJOR**: 핵심 원칙의 삭제 또는 근본적 재정의.
+- **MINOR**: 새로운 원칙/섹션 추가 또는 기존 가이드 확장.
+- **PATCH**: 문구 수정, 오타 교정, 의미 변경 없는 개선.
+
+### 준수 검토
+
+- 모든 PR은 헌법 원칙 준수 여부를 검토해야 한다.
+- Constitution Check 섹션을 통해 위반 사항을 명시적으로 정당화해야 한다.
+
+**Version**: 1.1.0 | **Ratified**: 2026-01-04 | **Last Amended**: 2026-01-04
