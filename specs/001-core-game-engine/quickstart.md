@@ -1,54 +1,52 @@
 # Quickstart: Core Game Engine
 
-**Branch**: `001-core-game-engine`
+## Prerequisites
 
-## 1. Prerequisites
+- Node.js 20+
+- PostgreSQL 18+ (Running on localhost:5432 or Docker)
+- Expo Go on Mobile Device (for Client testing)
 
-- Node.js v20+
-- npm or yarn
-- PostgreSQL 16+ (데이터 축적용)
+## Setup
 
-## 2. Server Setup (Core Engine)
+1. **Install Dependencies**
+
+   ```bash
+   npm install
+   ```
+
+2. **Database Setup**
+
+   ```bash
+   # Create Database
+   createdb blue_marble
+
+   # Run Migrations (Prisma)
+   npx prisma migrate dev --name init
+   ```
+
+3. **Environment Variables**
+   Create `.env`:
+   ```env
+   DATABASE_URL="postgresql://postgres:password@localhost:5432/blue_marble?schema=public"
+   PORT=3000
+   ```
+
+## Running the Server
 
 ```bash
-# Repo root에서
-cd server
-npm install
 npm run start:dev
 ```
 
-- Server will start on `http://localhost:3000`
-- WebSocket Gateway on `ws://localhost:3000` (Namespace: `/game`)
-
-## 3. Client Setup (Test App)
+## Running the Client (Expo)
 
 ```bash
-# Repo root에서
-cd client
-npm install
 npx expo start
 ```
 
-- Expo Go 앱으로 QR 스캔하여 접속
+Scan the QR code with Expo Go app.
 
-## 4. Testing the Engine
+## Project Structure
 
-### Unit Tests
-
-```bash
-cd server
-npm run test
-```
-
-### End-to-End Tests
-
-```bash
-cd server
-npm run test:e2e
-```
-
-## 5. Development Workflow
-
-1. `contracts/` 수정 시: Server/Client 양쪽에 복사 또는 공통 패키지 빌드 필요
-2. Game State 로직 변경 시: `game.service.spec.ts` 테스트 추가 필수
-3. 새로운 이벤트 추가 시: `websocket-events.ts` 및 `game.gateway.ts` 동시 수정
+- `src/server`: NestJS Backend
+- `src/client`: Expo React Native Frontend
+- `specs/001-core-game-engine/contracts`: Shared Types
