@@ -31,7 +31,7 @@ export interface GoldenKeyCardData {
   moveBackSteps?: number;
   /** 금액 (상금/지출) */
   value?: number;
-  /** 건물당 비용 [별장, 빌딩, 호텔] (유지비 타입) */
+  /** 건물당 비용 [빌라, 건물, 호텔] (유지비 타입) */
   buildingFees?: [number, number, number];
   /** 보관 가능 여부 */
   canHold?: boolean;
@@ -59,21 +59,21 @@ export const GOLDEN_KEY_CARDS: GoldenKeyCardData[] = [
   {
     id: 'card-02',
     name: '정기종합소득세',
-    message: '보유 건물당 유지비 지불: 호텔 15만 / 빌딩 10만 / 별장 3만',
+    message: '보유 건물당 유지비 지불: 호텔 15만 / 건물 10만 / 빌라 3만',
     effectType: CardEffectType.BUILDING_FEE,
-    buildingFees: [30000, 100000, 150000], // [별장, 빌딩, 호텔]
+    buildingFees: [30000, 100000, 150000], // [빌라, 건물, 호텔]
   },
   {
     id: 'card-03',
     name: '건물수리비',
-    message: '보유 건물당 수리비 지불: 호텔 10만 / 빌딩 6만 / 별장 3만',
+    message: '보유 건물당 수리비 지불: 호텔 10만 / 건물 6만 / 빌라 3만',
     effectType: CardEffectType.BUILDING_FEE,
     buildingFees: [30000, 60000, 100000],
   },
   {
     id: 'card-04',
     name: '방범비',
-    message: '보유 건물당 방범비 지불: 호텔 5만 / 빌딩 3만 / 별장 1만',
+    message: '보유 건물당 방범비 지불: 호텔 5만 / 건물 3만 / 빌라 1만',
     effectType: CardEffectType.BUILDING_FEE,
     buildingFees: [10000, 30000, 50000],
   },

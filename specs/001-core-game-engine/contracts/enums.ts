@@ -22,7 +22,7 @@ export enum PlayerColor {
   RED = 'red',
   BLUE = 'blue',
   YELLOW = 'yellow',
-  WHITE = 'white',
+  GREEN = 'green',
 }
 
 /** 칸 타입 */
@@ -69,9 +69,9 @@ export enum CardEffectType {
 /** 건물 레벨 */
 export enum BuildingLevel {
   LAND = 0,       // 대지만
-  VILLA = 1,      // 별장
-  VILLA2 = 2,     // 별장 2개
-  BUILDING = 3,   // 빌딩
+  VILLA = 1,      // 빌라
+  VILLA2 = 2,     // 빌라 2개
+  BUILDING = 3,   // 건물
   HOTEL = 4,      // 호텔
 }
 

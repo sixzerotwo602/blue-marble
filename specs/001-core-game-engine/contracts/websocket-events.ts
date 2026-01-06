@@ -208,6 +208,10 @@ export enum ErrorCode {
   // Network errors
   CONNECTION_LOST = 'CONNECTION_LOST',
   TIMEOUT = 'TIMEOUT',
+  DUPLICATE_LOGIN = 'DUPLICATE_LOGIN',
+  
+  // Validation errors
+  INVALID_MOVE_DISTANCE = 'INVALID_MOVE_DISTANCE',
 }
 
 export const ErrorMessages: Record<ErrorCode, string> = {
@@ -236,6 +240,9 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   
   [ErrorCode.CONNECTION_LOST]: '연결이 끊어졌습니다',
   [ErrorCode.TIMEOUT]: '응답 시간이 초과되었습니다',
+  [ErrorCode.DUPLICATE_LOGIN]: '이미 접속 중인 플레이어입니다',
+  
+  [ErrorCode.INVALID_MOVE_DISTANCE]: '이동 거리가 맞지 않습니다. 다시 스캔해주세요',
 };
 
 // ============================================================================

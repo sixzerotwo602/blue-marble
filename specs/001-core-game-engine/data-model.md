@@ -40,7 +40,7 @@ interface GameRoom {
 interface Player {
   id: string; // Socket ID or UUID
   name: string; // 닉네임
-  color: "red" | "blue" | "yellow" | "white";
+  color: "red" | "blue" | "yellow" | "green";
 
   // 자산 및 위치
   money: number; // 보유 현금
@@ -84,7 +84,7 @@ interface BoardTile {
   // 부동산 속성 (type === 'property' | 'vehicle')
   colorGroup?: string; // 독점 판정용 그룹
   price: number; // 구매가
-  rentLevels: number[]; // [대지, 별장, 별장2, 빌딩, 호텔] 통행료
+  rentLevels: number[]; // [대지, 빌라, 빌라2, 건물, 호텔] 통행료
 
   // 소유 상태
   ownerId: string | null; // 소유자 (null이면 은행/빈땅)
@@ -124,3 +124,95 @@ interface Transaction {
 - `GameRoom` contains `Player[]` (Max 4)
 - `Player` "owns" `BoardTile` (via `ownedTileIds` & `BoardTile.ownerId`)
 - `Player` has transient `Transaction[]` (history)
+
+## 3. Persistent Models (PostgreSQL)
+
+게임 플레이 데이터 축적을 위한 영구 저장 모델입니다.
+자세한 스키마는 [db-schema.ts](./contracts/db-schema.ts)를 참조하세요.
+
+### 테이블 구조
+
+```
+┌─────────────────┐      ┌──────────────────┐
+│   game_sessions │──┬─▶│  game_players    │
+│   (게임 세션)    │  │   │  (참여 플레이어)  │
+└─────────────────┘  │   └──────────────────┘
+                     │
+                     ├─▶┌──────────────────┐
+                     │   │  game_events     │
+                     │   │  (이벤트 로그)    │
+                     │   └──────────────────┘
+                     │
+                     └─▶┌──────────────────┐
+                         │  turn_snapshots  │
+                         │  (턴 스냅샷)     │
+                         └──────────────────┘
+```
+
+### GameSession
+
+```typescript
+interface GameSession {
+  id: string; // UUID
+  roomCode: string; // 방 코드
+  startedAt: Date; // 게임 시작 시간
+  endedAt: Date | null; // 게임 종료 시간
+  winnerId: string | null; // 승자 ID
+  totalTurns: number; // 총 턴 수
+  endReason: "bankruptcy" | "timeout" | "manual" | null;
+}
+```
+
+### GamePlayer (식별자 구조)
+
+```typescript
+interface GamePlayer {
+  id: string;
+  sessionId: string; // FK → game_sessions
+
+  // 식별자 계층 (익명 + 향후 계정 연동 대비)
+  visitorId: string; // 기기 기반 익명 ID (앱 설치 시 생성)
+  accountId: string | null; // 계정 ID (향후 로그인 시 연결)
+
+  playerName: string;
+  color: PlayerColor;
+  finalRank: number | null;
+  finalAssetValue: number | null;
+}
+```
+
+### GameEvent (이벤트 로그)
+
+```typescript
+interface GameEvent {
+  id: string;
+  sessionId: string; // FK → game_sessions
+  playerId: string;
+  turnNumber: number;
+  eventType: GameEventType; // 23종 이벤트 타입
+  eventData: Record<string, unknown>; // JSONB (맥락 정보 포함)
+  decisionDurationMs: number | null; // 의사결정 소요 시간
+  createdAt: Date;
+}
+```
+
+### TurnSnapshot (턴 상태 스냅샷)
+
+```typescript
+interface TurnSnapshot {
+  id: string;
+  sessionId: string;
+  turnNumber: number;
+  playerId: string;
+
+  // 상태 정보
+  position: number; // 현재 위치 (0-39)
+  money: number; // 현금
+  ownedTiles: number[]; // 소유 부동산
+  buildingLevels: Record<number, number>; // 타일별 건물 레벨
+  isBankrupt: boolean;
+  isOnIsland: boolean;
+  heldCards: string[];
+  totalAssetValue: number; // 총 자산 가치
+}
+```

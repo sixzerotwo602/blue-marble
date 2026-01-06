@@ -34,6 +34,38 @@
 - Q: 더블 시 행동 시점? → A: 주사위 → 이동 → 액션(구매/지불) 완료 후 다시 주사위 굴림 (Option A).
 - Q: 파산 시 건물 처리? → A: 건물 철거 없이 상태 그대로 채권자에게 소유권 이전 (Option A).
 
+### Session 2026-01-06 (용어 통일 및 명확화)
+
+- Q: 세금 칸이 별도로 존재하는가? → A: **세금 칸은 존재하지 않음**. "세금"이라는 용어가 사용될 경우 이는 사회복지기금 기부(150,000원)를 의미함. 씨앗사 부루마블 클래식(세계여행) 보드판에는 별도의 세금 칸이 존재하지 않으며, 은행에 납부하는 금액은 사회복지기금 기부가 유일함.
+- Q: 컴럼비아호와 우주여행의 관계? → A: **별개의 칸임**. 컴럼비아호(33번 칸)는 탈것 증서로서 통행료가 발생하며, 우주여행(30번 칸)은 별도의 특수 칸으로서 이용료를 내고 원하는 곳으로 이동하는 기능임. 컴럼비아호에 도착한다고 자동으로 우주여행이 되는 것은 아님.
+- Q: 무인도/감옥 용어 통일? → A: "무인도"로 통일. 무인도는 모노폴리의 감옥과 동일한 개념으로, 일정 턴 동안 이동할 수 없는 상태를 나타냄.
+- Q: 건물 명칭 통일? → A: "빌라/건물/호텔"로 통일. (v1.3 기준)
+- Q: 플레이어 말 색상? → A: "빨강/파랑/노랑/초록"으로 통일. (구버전 흰색에서 초록으로 변경)
+
+### Session 2026-01-06 (Observability & Clarify)
+
+- Q: 에러 로깅 및 모니터링 수준? → A: **전체 분산 추적** (OpenTelemetry + 모든 이벤트 trace). 게임 플레이 경향 분석을 위해 모든 이벤트를 추적 가능하게 구성.
+- Q: 로딩 상태 UI 표시 방식? → A: **버튼 비활성화 + 인라인 스피너** (해당 액션만 차단). 전체 화면 오버레이 없이 현재 진행 중인 액션만 시각적으로 표시.
+- Q: QR 검증 보안 수준? → A: **서버측 위치 검증 + Rate Limiting**. 이동 거리 검증(주사위 결과 vs 스캔 위치)과 연속 스캔 제한으로 스푸핑 방지.
+- Q: Board Data 제목의 "32 Tiles" 오류? → A: **40칸으로 수정**. 씨앗사 부루마블 클래식(세계여행) 보드판은 40칸임.
+- Q: 네트워크 자동 재연결 시도 횟수? → A: **3회 재시도 (3초 간격)** 후 수동 재연결 유도.
+
+### Session 2026-01-06 (Edge Cases)
+
+- Q: 동시에 여러 플레이어가 서버에 요청 시? → A: **턴 소유자만 액션 허용**. 다른 플레이어 요청은 NOT_YOUR_TURN 에러 반환.
+- Q: 황금열쇠로 이동한 곳이 또 황금열쇠 칸인 경우? → A: **연쇄 실행** (이동 후 새 황금열쇠 카드 룰음).
+- Q: 호스트가 먼저 파산/이탈 시 호스트 권한? → A: **다음 순서 플레이어에게 자동 이전**.
+- Q: 담보 설정된 땅에 도착 시 통행료? → A: **통행료 정상 징수** (담보와 무관). 공식 규칙과 다르게 운영.
+- Q: 모든 플레이어 연결 끊김 시 게임 상태? → A: **30분간 유지 후 자동 종료**. 종료 시 게임 로그 적절히 작성 후 데이터 보관 (endReason: timeout).
+
+### Session 2026-01-06 (Edge Cases 2차)
+
+- Q: 사회복지기금 적립금 0원일 때 수령 칸 도착? → A: **아무것도 지급 안 함** (0원 수령, 메시지만 표시).
+- Q: 더블 주사위 후 황금열쇠 강제 이동 시 재굴림 권한? → A: **더블 재굴림 권한 유지** (강제 이동 후 다시 주사위).
+- Q: 건물 건설 시 잔고 부족 옵션 처리? → A: **버튼 비활성화** (잔고 부족 건물은 선택 불가).
+- Q: 통행료 지불 중 파산 처리 순서? → A: **즉시 파산** (보유 자산 전부 채권자에게 이전).
+- Q: 게임 시작 최소 인원? → A: **2명 이상** (호스트가 시작 결정).
+
 ## Scope _(mandatory)_
 
 ### User Roles
@@ -73,7 +105,9 @@
 - 배팅/베팅 시스템
 - 게임 리플레이 기능
 - 리더보드/랭킹 시스템
-- 지속적 데이터 저장 (세션 종료 시 데이터 소멸)
+- 경매 시스템 (누군가 땅 구매를 포기하면 즉시 전원 경매 발동하는 기능, 추후 확장 가능)
+- 방장 강퇴/설정 변경 기능 (추후 확장 가능)
+- 계정 시스템 (MVP에서는 visitorId로 익명 식별, 추후 accountId 연동 예정)
 
 ### Game Constants
 
@@ -103,13 +137,16 @@
 | **Server**           | NestJS 10                  | REST API (방 생성) + WebSocket (게임 액션) |
 | **Client**           | React Native (Expo SDK 50) | QR 스캔, UI 렌더링                         |
 | **State Management** | Zustand                    | 클라이언트 상태 관리                       |
-| **Database**         | In-Memory (Node.js 힙)     | MVP 단계, DB 없음                          |
+| **Database**         | PostgreSQL 16              | 게임 데이터 축적 및 분석용                 |
+| **ORM**              | Prisma 5                   | 타입 안전 DB 접근                          |
+| **Cache**            | In-Memory (Node.js 힙)     | 실시간 게임 세션 상태                      |
 | **Real-time**        | WebSocket + Socket.IO      | 0.2~0.5초 내 실시간 반영                   |
 
 ### Architecture Overview
 
 ```
-Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
+Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState (실시간)
+                                       ⇆ PostgreSQL (영구 저장)
 ```
 
 - **SSOT (Single Source of Truth)**: 서버가 유일한 게임 상태 관리 주체
@@ -165,7 +202,7 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
 
 ### User Story 3 - 땅 구매 및 건물 건설 (Priority: P1)
 
-플레이어가 빈 땅에 도착했을 때 해당 땅을 구매하고, 이미 소유한 땅에서 건물(별장, 빌딩, 호텔)을 건설하여 자산을 확장할 수 있다.
+플레이어가 빈 땅에 도착했을 때 해당 땅을 구매하고, 이미 소유한 땅에서 건물(빌라, 건물, 호텔)을 건설하여 자산을 확장할 수 있다.
 
 **Why this priority**: 부루마블의 핵심 전략 요소이며, 자산 축적과 승리 조건에 직결.
 
@@ -174,8 +211,8 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
 **Acceptance Scenarios**:
 
 1. **Given** 빈 땅에 도착한 상태, **When** "구매" 버튼 클릭, **Then** 해당 가격만큼 차감되고 땅 소유권 획득
-2. **Given** 본인 소유 땅에 도착한 상태, **When** "건물 건설" 클릭, **Then** 건물 종류 선택(별장/빌딩/호텔) 후 비용 차감 및 건물 추가
-3. **Given** 잔고가 부족한 상태, **When** 구매 또는 건설 시도, **Then** "잔고 부족" 알림 및 액션 불가
+1. **Given** 본인 소유 땅에 도착한 상태, **When** "건물 건설" 클릭, **Then** 건물 종류 선택(빌라/건물/호텔) 후 비용 차감 및 건물 추가
+1. **Given** 잔고가 부족한 상태, **When** 구매 또는 건설 시도, **Then** "잔고 부족" 알림 및 액션 불가
 
 ---
 
@@ -210,9 +247,9 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
 
 ---
 
-### User Story 6 - 무인도/감옥 처리 (Priority: P2)
+### User Story 6 - 무인도 처리 (Priority: P2)
 
-플레이어가 무인도에 갇혔을 때 더블 탈출, 비용 지불 탈출, 또는 대기를 선택할 수 있다. 3턴 대기 후 자동 탈출된다.
+플레이어가 무인도에 갇혔을 때 더블 탈출, 비용 지불 탈출, 또는 대기를 선택할 수 있다. 3턴 대기 후 자동 탈출된다. (참고: 무인도는 모노폴리의 감옥과 동일한 개념)
 
 **Why this priority**: 게임 진행에 변화를 주는 특수 칸이나, 핵심 이동 로직 후 구현 가능.
 
@@ -263,13 +300,23 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
 - 동시에 같은 방 코드로 5명 이상 입장 시도 시 4명까지만 허용하고 이후 거부
 - 우주여행(특수 칸) 도착 시 40칸 중 원하는 칸으로 이동 가능 (QR 스캔 검증 필수)
 - 동일 턴에 여러 거래(구매+건설) 시 순차적 처리
+- **동시 액션 요청**: 턴 소유자만 액션 허용, 다른 플레이어의 요청은 NOT_YOUR_TURN 에러로 거부
+- **황금열쇠 연쇄**: 황금열쇠로 이동한 곳이 또 황금열쇠 칸이면 연쇄 실행 (새 카드 룰음)
+- **호스트 이탈**: 호스트 파산/이탈 시 다음 순서 플레이어에게 호스트 권한 자동 이전
+- **담보 땅 통행료**: 담보 설정된 땅에 도착해도 통행료 정상 징수 (공식 규칙과 다름)
+- **전원 연결 끊김**: 모든 플레이어 연결 끊김 시 30분간 게임 상태 유지, 이후 미접속 시 로그 작성 후 데이터 보관 (endReason: timeout)
+- **사회복지기금 0원**: 적립금이 0원일 때 수령 칸 도착 시 아무것도 지급 안 함 ("적립금이 없습니다" 메시지 표시)
+- **더블+강제이동**: 더블 주사위 후 황금열쇠로 강제 이동 시 더블 재굴림 권한 유지 (강제 이동 후 다시 주사위)
+- **건설 잔고부족**: 건물 건설 시 잔고가 부족한 옵션은 버튼 비활성화 (선택 불가)
+- **통행료 파산**: 통행료 지불 시 잔고+자산 매각으로도 부족하면 즉시 파산, 보유 자산 전부 채권자에게 이전
+- **최소 인원**: 2명 이상이면 호스트가 게임 시작 가능 (4명 필수 아님)
 
 ## Requirements _(mandatory)_
 
 ### Functional Requirements
 
 - **FR-001**: 시스템은 고유한 방 코드를 생성하여 최대 4명의 플레이어가 입장할 수 있어야 한다
-- **FR-002**: 시스템은 입장 순서대로 4가지 색상(빨강, 파랑, 노랑, 흰색) 중 하나를 자동 배정해야 한다
+- **FR-002**: 시스템은 입장 순서대로 4가지 색상(빨강, 파랑, 노랑, 초록) 중 하나를 자동 배정해야 한다
 - **FR-003**: 시스템은 게임 시작 시 플레이어 순서를 랜덤으로 결정해야 한다
 - **FR-004**: 시스템은 1~12 범위의 주사위 결과(두 주사위 합)를 입력받아야 한다
 - **FR-005**: 시스템은 QR 스캔을 통해 플레이어 위치를 검증해야 한다
@@ -291,6 +338,15 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
 - **FR-021**: 시스템은 사회복지기금 기부 칸 도착 시 기부금(15만원)을 차감하고 적립금(fundPool)에 누적해야 한다
 - **FR-022**: 시스템은 사회복지기금 접수(수령처) 도착 시 적립금 전액을 해당 플레이어에게 지급해야 한다
 - **FR-023**: 시스템은 탈것(콩코드, 퀸엘리자베스, 컬럼비아호) 소유 시 별도 통행료 규칙을 적용해야 한다
+- **FR-024**: 시스템은 동일한 플레이어가 중복으로 로그인하는 것을 차단해야 한다
+- **FR-025**: 시스템은 주사위 결과와 QR 스캔 위치 간의 이동 거리가 일치하는지 검증해야 한다
+- **FR-026**: 시스템은 통행료 지불 발생 시 토지 소유자에게 입금 대기 알림을 표시해야 한다
+- **FR-027**: 시스템은 플레이어들의 총 자산(현금 + 부동산 가치 + 건물 가치)을 기준으로 실시간 순위를 계산하여 표시해야 한다
+- **FR-028**: 시스템은 비정상 이동 거리 감지 시 경고 후 재스캔을 요구해야 한다
+- **FR-029**: 시스템은 모든 게임 이벤트(주사위, 이동, 구매, 건설, 통행료 등)를 PostgreSQL에 로깅해야 한다
+- **FR-030**: 시스템은 매 턴 시작 시 각 플레이어의 상태(현금, 부동산, 건물, 위치)를 스냅샷으로 저장해야 한다
+- **FR-031**: 시스템은 게임 종료 시 최종 결과(승자, 순위, 총 턴 수)를 저장해야 한다
+- **FR-032**: 시스템은 의사결정에 소요된 시간(밀리초)을 이벤트와 함께 기록해야 한다
 
 ### Key Entities
 
@@ -300,6 +356,10 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
 - **GoldenKeyCard**: 황금열쇠 카드 (ID, 내용, 효과 종류, 금액/목적지)
 - **GameState**: 게임 상태 (현재 턴, 턴 순서, 게임 진행 상태, 일시 정지 여부)
 - **Transaction**: 거래 기록 (시간, 발신자, 수신자, 금액, 사유)
+- **GameSession**: [DB] 게임 세션 메타데이터 (시작/종료 시간, 승자, 총 턴 수)
+- **GamePlayer**: [DB] 참여 플레이어 정보 (visitorId, accountId, 최종 결과)
+- **GameEvent**: [DB] 게임 이벤트 로그 (이벤트 타입, JSONB 데이터, 의사결정 시간)
+- **TurnSnapshot**: [DB] 턴별 상태 스냅샷 (현금, 부동산, 건물, 총 자산)
 
 ## Success Criteria _(mandatory)_
 
@@ -333,8 +393,8 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
 | Entity        | Required Fields                                                                                                                                                 |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GameRoom      | id, roomCode, status (waiting/playing/finished), hostPlayerId, players[], currentTurnIndex, turnOrder[], createdAt                                              |
-| Player        | id, name, color (red/blue/yellow/green), position (0-31), money, ownedTileIds[], isConnected, isBankrupt, islandTurnsLeft                                       |
-| BoardTile     | id, index (0-31), name, type (property/goldenKey/special/start), colorGroup?, price?, rentLevels[]?, ownerId?, buildingLevel (0-3), isMortgaged, mortgageValue? |
+| Player        | id, name, color (red/blue/yellow/green), position (0-39), money, ownedTileIds[], isConnected, isBankrupt, islandTurnsLeft                                       |
+| BoardTile     | id, index (0-39), name, type (property/goldenKey/special/start), colorGroup?, price?, rentLevels[]?, ownerId?, buildingLevel (0-3), isMortgaged, mortgageValue? |
 | GoldenKeyCard | id, message, effectType (move/receive/pay/toIsland/repair), value?, destinationIndex?                                                                           |
 | Transaction   | id, timestamp, fromPlayerId?, toPlayerId?, amount, reason (rent/purchase/build/tax/goldenKey/salary/mortgage)                                                   |
 
@@ -391,19 +451,20 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
 
 ---
 
-### 3. Board Data (32 Tiles)
+### 3. Board Data (40 Tiles)
 
-씨앗사 부루마블 클래식(세계여행) 보드판 32칸 데이터를 정의해주세요.
+씨앗사 부루마블 클래식(세계여행) 보드판 40칸 데이터를 정의해주세요.
 
 **Tile Types**:
 
 - `start`: 출발 (1개)
-- `property`: 부동산 (22개) - colorGroup 포함
-- `goldenKey`: 황금열쇠 (4개)
+- `property`: 도시/부동산 (26개) - colorGroup 포함
+- `vehicle`: 탈것 (3개) - 콩코드, 퀄엘리자베스, 컴럼비아
+- `goldenKey`: 황금열쇠 (6개)
 - `island`: 무인도 (1개)
 - `travel`: 우주여행 (1개)
-- `fund`: 사회복지기금 (1개)
-- `tax`: 세금 (2개)
+- `fundReceive`: 사회복지기금 접수 (1개)
+- `fundDonate`: 사회복지기금 기부 (1개)
 
 **Property Color Groups** (독점 판정용):
 
@@ -414,7 +475,7 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
 
 ```typescript
 {
-  index: number,           // 0-31
+  index: number,           // 0-39
   name: string,            // "타이베이", "서울" 등
   type: "property",
   colorGroup: string,      // "brown", "sky", "pink", "orange", "red", "yellow", "green", "blue"

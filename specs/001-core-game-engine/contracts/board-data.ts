@@ -20,8 +20,8 @@ export interface BoardTileData {
   type: TileType;
   colorGroup?: string;
   price?: number;
-  buildingPrices?: [number, number, number]; // [별장, 빌딩, 호텔]
-  /** [대지, 별장, 별장2개, 빌딩, 호텔] 통행료 */
+  buildingPrices?: [number, number, number]; // [빌라, 건물, 호텔]
+  /** [대지, 빌라, 빌라2개, 건물, 호텔] 통행료 */
   rentLevels?: [number, number, number, number, number];
   canBuild?: boolean;
 }

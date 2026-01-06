@@ -6,6 +6,7 @@
 
 - Node.js v20+
 - npm or yarn
+- PostgreSQL 16+ (데이터 축적용)
 
 ## 2. Server Setup (Core Engine)
 
