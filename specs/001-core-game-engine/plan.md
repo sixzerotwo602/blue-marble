@@ -1,104 +1,190 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: 부루마블 핵심 게임 엔진
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-core-game-engine` | **Date**: 2026-01-09 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-core-game-engine/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+씨앗사 부루마블 보드게임의 디지털 버전을 위한 핵심 게임 엔진을 구현합니다. Node.js 20.x + TypeScript 5.x (Strict Mode) 기반으로, WebSocket을 통한 온라인 실시간 멀티플레이어를 지원합니다. 40칸 보드, 29개 증서, 27종 황금열쇠 카드, Ordinary/Option 게임 모드, 전반전/후반전 전환, 파산 방어 로직(settleShortage)을 포함합니다.
 
 ## Technical Context
 
-**Language/Version**: Node.js 20+, TypeScript 5.0+
-**Primary Dependencies**: NestJS 10 (Server), Expo SDK 50 (Client), Socket.IO (Real-time), Zustand (State)
-**Storage**: PostgreSQL 18 (Persistence), In-Memory (Game State)
-**Testing**: Jest (Unit/Integration), Supertest (E2E)
-**Target Platform**: iOS/Android (Expo Go), Docker Container (Server)
-**Project Type**: Monorepo (TurboRepo or equivalent recommended for shared types)
-**Performance Goals**: WebSocket latency < 500ms, State broadcast < 200ms
-**Constraints**: Bankless logic, Offline support (limited), 30% speedup vs analog
-**Scale/Scope**: Max 4 players/room, 100+ concurrent rooms
+**Language/Version**: Node.js 20.x (LTS) + TypeScript 5.x (Strict Mode 필수)  
+**Primary Dependencies**:
+
+- Server: Express.js 또는 Fastify (REST API)
+- WebSocket: Socket.io 또는 ws
+- Validation: Zod (런타임 타입 검증)
+- Frontend: React 18.x + Vite
+
+**Storage**:
+
+- 게임 세션: In-Memory (Redis 옵션)
+- 보드 데이터: JSON 파일 (정적 데이터)
+
+**Testing**:
+
+- Unit: Vitest
+- E2E: Playwright
+- Contract: TypeScript 타입 시스템 + Zod
+
+**Target Platform**:
+
+- Server: Node.js 20.x (Docker 컨테이너)
+- Client: 모던 웹 브라우저 (Chrome, Firefox, Safari, Edge)
+
+**Project Type**: Web Application (backend + frontend)
+
+**Performance Goals**:
+
+- WebSocket 응답 < 100ms
+- 동시 접속 10개 게임룸 (최대 40명)
+- 클라이언트 렌더링 60fps
+
+**Constraints**:
+
+- 서버 메모리 < 512MB per 게임룸
+- 턴 제한 시간 없음 (연결 끊김으로 대체)
+- 재접속 타임아웃: 60초
+
+**Scale/Scope**:
+
+- 2~4인 플레이어
+- 40칸 보드
+- 29개 증서
+- 27종 황금열쇠
 
 ## Constitution Check
 
-_GATE: Passed. All core principles aligned._
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-- **Server as SSOT**: Plan uses NestJS server as central authority.
-- **QR-Based Strict Validation**: Uses server-side validation for all moves (FR-005, FR-025).
-- **Honor System**: Dice input and Island escape rely on user input (FR-004, FR-033).
-- **Immediate Bankruptcy**: Automates asset transfer upon bankruptcy (FR-011, FR-012).
-- **Explicit Turn**: Turn end requires manual action (FR-013).
-- **Connection Resilience**: Implements pause/resume logic (FR-014, FR-015).
+| 원칙                           | 상태     | 적용 방법                                                                          |
+| ------------------------------ | -------- | ---------------------------------------------------------------------------------- |
+| **I. 서버 중심 진실의 원천**   | ✅ PASS  | 모든 GameState는 서버에서만 관리. 클라이언트는 렌더링만 수행.                      |
+| **II. QR 기반 엄격 검증**      | ⚠️ DEFER | 디지털 전용 버전이므로 QR 검증 생략. 주사위 결과를 서버 RNG로 처리 가능 옵션 제공. |
+| **III. 양심 기반 신고 시스템** | ⚠️ DEFER | 온라인 버전에서는 서버 RNG 사용 권장. 사용자 직접 입력은 옵션으로.                 |
+| **IV. 즉시 파산 처리**         | ✅ PASS  | `declareBankruptcy()` 함수에서 즉시 자산 이전. Unit Test 필수.                     |
+| **V. 턴 종료 명시적 선언**     | ✅ PASS  | `endTurn()` 버튼으로 명시적 선언 필요. Undo 불가.                                  |
+| **VI. 연결 복원성**            | ✅ PASS  | 60초 재접속 대기 + AI 대체 정책 적용.                                              |
+| **VII. KISS**                  | ✅ PASS  | 모듈화된 함수 구조로 단순성 유지.                                                  |
+| **VIII. YAGNI**                | ✅ PASS  | 핵심 게임 로직에만 집중. 확장 기능은 향후 이터레이션.                              |
+| **IX. DRY**                    | ✅ PASS  | 공통 유틸리티 함수 및 상수 정의.                                                   |
+| **X. SOLID**                   | ✅ PASS  | 서비스 레이어 분리, 인터페이스 기반 설계.                                          |
+
+### 위반 정당화
+
+| 원칙           | 위반 사유                             | 대안                                  |
+| -------------- | ------------------------------------- | ------------------------------------- |
+| QR 기반 검증   | 디지털 전용 버전으로 물리적 보드 없음 | 서버 RNG로 주사위 결과 생성 옵션 제공 |
+| 양심 기반 신고 | 온라인 게임에서 신뢰 문제 발생 가능   | 서버 RNG 기본, 사용자 입력 옵션       |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-core-game-engine/
+├── plan.md              # 이 파일 (/speckit.plan 출력)
+├── research.md          # Phase 0 출력
+├── data-model.md        # Phase 1 출력
+├── quickstart.md        # Phase 1 출력
+├── contracts/           # Phase 1 출력 (API 스키마)
+├── checklists/          # 품질 체크리스트
+└── tasks.md             # Phase 2 출력 (/speckit.tasks)
 ```
 
 ### Source Code (repository root)
 
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
-
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+# Web Application Structure (backend + frontend)
 
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
+server/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+│   ├── models/              # 도메인 모델 (PlayerState, GameState, etc.)
+│   │   ├── player.ts
+│   │   ├── property.ts
+│   │   ├── game-state.ts
+│   │   └── golden-key.ts
+│   ├── services/            # 비즈니스 로직
+│   │   ├── game-engine.ts   # 핵심 게임 로직
+│   │   ├── turn-service.ts  # 턴 처리
+│   │   ├── payment-service.ts # 지불/파산 로직
+│   │   └── auction-service.ts # 경매 로직
+│   ├── websocket/           # WebSocket 핸들러
+│   │   ├── game-room.ts
+│   │   └── events.ts
+│   ├── api/                 # REST API (게임 생성, 조회)
+│   │   └── routes.ts
+│   ├── data/                # 정적 데이터 (보드, 증서, 카드)
+│   │   ├── board.json
+│   │   ├── properties.json
+│   │   └── golden-keys.json
+│   └── utils/               # 유틸리티
+│       ├── dice.ts
+│       └── constants.ts
+├── tests/
+│   ├── unit/
+│   │   ├── game-engine.test.ts
+│   │   ├── payment-service.test.ts
+│   │   └── bankruptcy.test.ts  # 필수: Constitution IV
+│   └── integration/
+│       └── websocket.test.ts
+├── package.json
+└── tsconfig.json
 
-frontend/
+client/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   ├── components/          # UI 컴포넌트
+│   │   ├── Board/
+│   │   ├── PlayerPanel/
+│   │   ├── DiceRoller/
+│   │   ├── PropertyCard/
+│   │   └── GoldenKeyModal/
+│   ├── pages/               # 페이지
+│   │   ├── Lobby.tsx
+│   │   ├── GameRoom.tsx
+│   │   └── GameOver.tsx
+│   ├── services/            # API/WebSocket 클라이언트
+│   │   ├── socket-client.ts
+│   │   └── api-client.ts
+│   ├── stores/              # 상태 관리
+│   │   └── game-store.ts
+│   └── hooks/               # 커스텀 훅
+│       └── useGameSocket.ts
+├── tests/
+│   └── e2e/
+│       └── game-flow.spec.ts
+├── package.json
+├── vite.config.ts
+└── tsconfig.json
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+shared/
+├── types/                   # 공유 타입 정의
+│   ├── game.ts
+│   ├── player.ts
+│   ├── property.ts
+│   └── events.ts
+└── constants/               # 공유 상수
+    └── game-constants.ts
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web Application (backend + frontend + shared types)
+
+- `server/`: Node.js + TypeScript 백엔드 (Express/Fastify + Socket.io)
+- `client/`: React 18 + Vite 프론트엔드
+- `shared/`: TypeScript 타입 및 상수 공유 (모노레포 구조)
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> **Constitution Check 위반 정당화**
 
-| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
-| -------------------------- | ------------------ | ------------------------------------ |
-| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |
+| Violation     | Why Needed                            | Simpler Alternative Rejected Because    |
+| ------------- | ------------------------------------- | --------------------------------------- |
+| QR 검증 생략  | 디지털 전용 버전으로 물리적 보드 없음 | 물리적 QR 스캔은 온라인 게임에서 불가능 |
+| 서버 RNG 사용 | 온라인 게임 공정성 보장               | 사용자 입력은 치팅 가능성 있음          |
+
+## Phase Outputs
+
+- **Phase 0**: `research.md` - 기술 결정 및 대안 분석
+- **Phase 1**: `data-model.md`, `contracts/`, `quickstart.md` - 설계 문서
+- **Phase 2**: `tasks.md` - 구현 태스크 (/speckit.tasks 명령으로 생성)

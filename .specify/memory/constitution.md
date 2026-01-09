@@ -2,13 +2,15 @@
 
 # SYNC IMPACT REPORT
 
-Version Change: 1.0.0 → 1.1.0 (MINOR: 새로운 원칙 섹션 추가)
+Version Change: 1.1.0 → 1.2.0 (MINOR: 디지털 MVP 모드 예외 조항 추가)
 
-Added Sections:
+Added Sections: 없음
 
-- 개발 원칙 (Development Principles): KISS, YAGNI, DRY, SOLID
+Modified Sections:
 
-Modified Sections: 없음
+- II. QR 기반 엄격 검증: MVP 예외 조항 추가
+- III. 양심 기반 신고 시스템: MVP 예외 조항 추가
+
 Removed Sections: 없음
 
 Templates Status:
@@ -43,7 +45,9 @@ Templates Status:
 - 강제 이동(황금열쇠, 우주여행 등): 지정된 칸의 QR을 스캔해야만 락(Lock)이 풀리고 턴 진행 가능.
 - 잘못된 QR 스캔 시 명확한 에러 메시지("여기가 아닙니다") 출력 및 진행 차단.
 
-**근거**: 물리적 보드 이동과 디지털 상태의 동기화 보장.
+**MVP 예외 (Digital MVP Mode)**: 물리적 보드가 없는 완전한 디지털 환경(MVP 모드)에서는 QR 검증 절차를 생략하고, 서버의 논리적 위치 계산 및 상태 검증으로 이를 대체한다.
+
+**근거**: 물리적 보드 이동과 디지털 상태의 동기화 보장 (단, 디지털 전용 모드에서는 서버 로직이 이를 대신함).
 
 ### III. 양심 기반 신고 시스템 (Honor System for Unverifiable Actions)
 
@@ -52,7 +56,9 @@ Templates Status:
 - 무인도/감옥 탈출: [더블 탈출 성공] / [실패] / [비용 지불 탈출] 3개 버튼 노출.
 - 주사위 결과: 사용자가 직접 입력하며, 앱은 이를 신뢰한다.
 
-**근거**: 실물 주사위의 "손맛"을 유지하면서 디지털 편의성 제공.
+**MVP 예외 (Digital MVP Mode)**: 온라인 멀티플레이 환경(MVP 모드)에서는 플레이어 간 신뢰 및 치팅 방지를 위해 사용자 입력을 배제하고, 서버 측 난수 생성기(RNG)를 사용하여 승부와 관련된 모든 결과를 결정한다.
+
+**근거**: 실물 주사위의 "손맛"을 유지하면서 디지털 편의성 제공 (단, 온라인 대전 시 공정성 우선).
 
 ### IV. 즉시 파산 처리 (Immediate Bankruptcy Resolution)
 
@@ -181,4 +187,4 @@ Templates Status:
 - 모든 PR은 헌법 원칙 준수 여부를 검토해야 한다.
 - Constitution Check 섹션을 통해 위반 사항을 명시적으로 정당화해야 한다.
 
-**Version**: 1.1.0 | **Ratified**: 2026-01-04 | **Last Amended**: 2026-01-04
+**Version**: 1.2.0 | **Ratified**: 2026-01-04 | **Last Amended**: 2026-01-09

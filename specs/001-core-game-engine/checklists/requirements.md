@@ -1,41 +1,80 @@
 # Specification Quality Checklist: 부루마블 핵심 게임 엔진
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-01-04
-**Feature**: [spec.md](file:///e:/github_coop/blue-marble/specs/001-core-game-engine/spec.md)
+**Purpose**: 명세서 완성도 및 품질 검증 (계획 단계 진입 전 확인)  
+**Created**: 2026-01-09  
+**Updated**: 2026-01-09 (Clarification 완료)  
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
-- [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
-- [x] All mandatory sections completed
+- [x] 구현 세부사항 없음 (언어, 프레임워크, API 미언급)
+- [x] 사용자 가치 및 비즈니스 요구에 집중
+- [x] 비기술적 이해관계자를 위해 작성됨
+- [x] 모든 필수 섹션 완료
 
 ## Requirement Completeness
 
-- [x] No [NEEDS CLARIFICATION] markers remain
-- [x] Requirements are testable and unambiguous
-- [x] Success criteria are measurable
-- [x] Success criteria are technology-agnostic (no implementation details)
-- [x] All acceptance scenarios are defined
-- [x] Edge cases are identified
-- [x] Scope is clearly bounded
-- [x] Dependencies and assumptions identified
+- [x] [NEEDS CLARIFICATION] 마커 없음
+- [x] 요구사항이 테스트 가능하고 명확함
+- [x] 성공 기준이 측정 가능함
+- [x] 성공 기준이 기술 독립적임 (구현 세부사항 없음)
+- [x] 모든 수락 시나리오 정의됨
+- [x] 엣지 케이스 식별됨
+- [x] 범위가 명확히 한정됨
+- [x] 의존성 및 가정사항 식별됨
 
 ## Feature Readiness
 
-- [x] All functional requirements have clear acceptance criteria
-- [x] User scenarios cover primary flows
-- [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [x] 모든 기능 요구사항에 명확한 수락 기준 있음
+- [x] 사용자 시나리오가 주요 흐름을 커버함
+- [x] 기능이 성공 기준에 정의된 측정 가능한 결과를 충족
+- [x] 명세에 구현 세부사항이 누출되지 않음
 
-## Validation Summary
+## Clarification Session 2026-01-09
 
-✅ **All items pass** - Specification is ready for `/speckit.plan`
+총 **5개 질문** 완료:
+
+| #   | 질문                               | 답변                                 |
+| --- | ---------------------------------- | ------------------------------------ |
+| 1   | 게임의 플레이 환경은?              | 웹 브라우저 기반 (HTML/CSS/JS)       |
+| 2   | 멀티플레이어 동기화 방식은?        | 온라인 실시간 (WebSocket 서버 필요)  |
+| 3   | 플레이어 연결 끊김 시 처리 방식은? | 일정 시간 재접속 대기 후 AI로 대체   |
+| 4   | 시간 제한 게임 옵션은?             | 30/60/90분 선택 + 무제한 옵션        |
+| 5   | 턴 당 제한 시간은?                 | 턴 제한 없음 (연결 끊김 감지로 대체) |
 
 ## Notes
 
-- Notion 문서 "부루마블(블루마블) 요소 정리"의 데이터(황금열쇠 27종 분포 등)가 반영됨
-- 8개 사용자 스토리가 우선순위별로 정의됨 (P1: 4개, P2: 3개, P3: 1개)
-- 핵심 엔티티 6개 정의됨
-- 성공 기준 8개가 측정 가능하고 기술 중립적으로 작성됨
+### 하이브리드 전략 적용 결과
+
+1. **데이터 아키텍처 (ChatGPT)**:
+
+   - `PlayerState`, `PropertySpec`, `GameState` 구조체 정의
+   - `pendingSpaceChoice`, `islandTurnsLeft` 등 상태 변수 포함
+
+2. **보드 데이터 (부루마블 요소 정리.md)**:
+
+   - 40칸 보드 (모서리 4개 + 각 변 9개)
+   - 29개 증서 (23개 건설 가능 도시, 3개 건설 불가 도시, 3개 탈것)
+   - 27종 황금열쇠 카드
+
+3. **게임 루프 (Gemini)**:
+
+   - Ordinary vs Option 모드 분기
+   - 전반전/후반전 전환 조건 명확화
+
+4. **함수 구현 (Claude + ChatGPT)**:
+   - Claude 스타일 모듈화 (`rollDice`, `movePlayer`, `processTileAction` 등)
+   - ChatGPT `settleShortage` 파산 방어 로직 (건물 매각 → 증서 인계 → 대출 → 파산)
+
+### 추가 명확화 사항 (Clarification Session)
+
+5. **플랫폼**: 웹 브라우저 기반
+6. **멀티플레이어**: 온라인 실시간 WebSocket
+7. **연결 끊김**: 재접속 대기 + AI 대체
+8. **시간 제한**: 30/60/90분 + 무제한
+9. **턴 제한**: 없음
+
+---
+
+**검증 완료**: 2026-01-09  
+**다음 단계**: `/speckit.plan` 실행하여 구현 계획 생성
