@@ -2,7 +2,7 @@ import 'dotenv/config';
 import Fastify, { FastifyInstance } from 'fastify';
 import { Server } from 'socket.io';
 import { gameRoutes } from './api/routes.js';
-import { GameService } from './services/game-service.js';
+import { registerSocketHandlers } from './websocket/index.js';
 
 const fastify: FastifyInstance = Fastify({ logger: true });
 
@@ -33,29 +33,8 @@ const start = async () => {
     // Store io reference for routes to use
     (fastify as any).io = io;
 
-    io.on('connection', (socket) => {
-      fastify.log.info(`Client connected: ${socket.id}`);
-      
-      socket.on('joinRoom', (roomId: string) => {
-        socket.join(roomId);
-        fastify.log.info(`Socket ${socket.id} joined room ${roomId}`);
-        
-        // Send current game state to the reconnected client
-        const game = GameService.getGame(roomId);
-        if (game) {
-             socket.emit('gameUpdate', { gameState: game });
-        }
-      });
-
-
-      socket.on('ping', () => {
-        socket.emit('pong');
-      });
-
-      socket.on('disconnect', () => {
-        fastify.log.info(`Client disconnected: ${socket.id}`);
-      });
-    });
+    // Use external handler
+    registerSocketHandlers(io);
 
   } catch (err) {
     fastify.log.error(err);

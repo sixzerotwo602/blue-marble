@@ -72,7 +72,11 @@ export interface PropertySpec {
 // ───────────────────────────────────────────────────────────────
 export interface PropertyState {
   ownerPlayerId: string | null;
-  buildingLevel: BuildingLevel;
+  buildingCounts: {
+    villa: number;
+    building: number;
+    hotel: number;
+  };
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -112,6 +116,7 @@ export interface PlayerState {
 
   // Status Flags
   bankrupt: boolean;
+  hasLoan: boolean;
   isConnected: boolean;
   disconnectedAt: number | null;
 
@@ -159,6 +164,19 @@ export interface GameState {
   turnsElapsed: number;
   gameEndByTimeLimit: boolean;
   timeLimitMinutes: number | null;
+
+  // Logs for UI
+  logs: string[];
+
+  // Pending Debt for Bankruptcy Resolution
+  pendingDebt: {
+      debtorId: string;
+      creditorId: string | 'BANK'; // 'BANK' for tax/purchase/island, or PlayerId for toll
+      amount: number;
+  } | null;
+
+  // Dev/Test Mode
+  devMode: boolean;
 }
 
 // ───────────────────────────────────────────────────────────────
