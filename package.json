@@ -1,0 +1,22 @@
+{
+  "name": "blue-marble",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Blue Marble Digital Board Game",
+  "workspaces": [
+    "server",
+    "client",
+    "shared"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
