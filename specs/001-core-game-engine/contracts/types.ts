@@ -30,15 +30,14 @@ import {
 export const GAME_CONSTANTS = {
   BOARD_SIZE: 40,
   MAX_PLAYERS: 4,
-  INITIAL_MONEY: 2_000_000,
+  INITIAL_MONEY: 2_930_000,       // 3~4인 기준 (권종별 합산)
+  INITIAL_MONEY_2P: 5_860_000,    // 2인 플레이 시 (2배)
   START_SALARY: 200_000,
   WELFARE_DONATION: 150_000,
   SPACE_TRAVEL_FEE: 200_000,
   ESCAPE_CARD_SELL_PRICE: 200_000,
   ISLAND_LOCK_TURNS: 3,
   DISCONNECT_TIMEOUT_MS: 180_000,
-  MORTGAGE_RATE: 0.5,
-  MORTGAGE_INTEREST: 0.1,
 } as const;
 
 // ───────────────────────────────────────────────────────────────
@@ -74,7 +73,6 @@ export interface PropertySpec {
 export interface PropertyState {
   ownerPlayerId: string | null;
   buildingLevel: BuildingLevel;
-  isMortgaged: boolean;
 }
 
 // ───────────────────────────────────────────────────────────────

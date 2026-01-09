@@ -26,18 +26,16 @@
 
 ### Session 2026-01-04
 
-### Session 2026-01-04
-
 - Q: 서버 아키텍처 및 실시간 통신 방식? → A: NestJS 10 + WebSocket/Socket.IO 기반, In-Memory 상태 관리
 - Q: MVP Out-of-Scope 범위? → A: 핵심 가치(Bankless, Math-free, Sync) 기반 최소 기능만 In-Scope
 - Q: 호스트와 일반 플레이어의 권한 차이? → A: 호스트는 게임 시작만 담당 (중도 종료/일시 정지 없음)
-- Q: 담보 설정 시 자산 가치 산정 기준? → A: 구매가의 50% (건물 포함 시 건물 가격의 50% 추가)
-- Q: 초기 플레이어 자금? → A: 200만원 (공식 부루마블 규칙)
+- Q: 담보 설정 시 자산 가치 산정 기준? → A: **MVP Out-of-Scope** (담보 기능 제외)
+- Q: 초기 플레이어 자금? → A: 3~4인: 293만원 / 2인: 586만원 (공식 부루마블 규칙 - 권종별 합산)
 - Q: 우주여행 특수 칸 이동 가능 범위? → A: 보드판 40칸 중 어디든 이동 가능 (원본 규칙, QR 스캔 검증 필수)
 - Q: 올림픽 개최 특수 칸 효과? → A: 황금열쇠 카드에 해당 효과 없음, MVP에서 제외 (Edge Case에서 삭제)
 - Q: 주사위 더블 3회 연속 시 무인도 직행? → A: MVP에서 제외 (공식 규칙 아님, Edge Case에서 삭제)
 - Q: 사회복지기금 칸 효과? → A: 2칸 + 적립 시스템 (원본 규칙). 서울-뉴욕 사이에 모금 칸(150,000원 적립), 코너 3번이 수령처(적립금 전액 수령)
-- Q: 사회복지기금 기부 시 현금 부족? → A: 자산 매각/담보를 통해 납부해야 하며, 불가능 시 파산 처리 (Option A)
+- Q: 사회복지기금 기부 시 현금 부족? → A: 자산 매각을 통해 납부해야 하며, 불가능 시 파산 처리 (Option A)
 - Q: 컬럼비아호(우주여행 출발지) 규칙? → A: 탈것(증서 확인). 주인 있으면 통행료 20만원 지불, 없으면 무료. 탑승 후 **다음 턴**에 원하는 곳으로 이동(출발지 경유 시 월급 지급).
 - Q: 우주여행 이동 시점? → A: 도착 턴은 종료(Wait), **다음 턴**에 주사위 없이 이동할 곳 선택 (Option A).
 - Q: 반액 대매출 대상 기준? → A: (토지+건물) 총 가치가 가장 높은 곳. 동점일 경우 플레이어가 선택 (Option A).
@@ -46,7 +44,7 @@
 - Q: 건물 건설 제약? → A: 순차 제약 없음. 자금만 충분하다면 한 턴에 별장~호텔까지 한 번에 건설 가능 (Option A).
 - Q: 독점(Monopoly) 룰 적용 여부? → A: 독점 배수 규칙 없음. 우대권 사용 시 단순 무료 통행 처리.
 - Q: 황금열쇠 이동 시 월급 지급? → A: 출발지를 지나가는 경로라면 월급(20만원) 지급 (Option A).
-- Q: 파산/지불 부족 시 자산 처분 방식? → A: 사용자가 직접 매각/담보 대상을 선택하여 부족분 충당 (Option A).
+- Q: 파산/지불 부족 시 자산 처분 방식? → A: 사용자가 직접 매각 대상을 선택하여 부족분 충당 (Option A).
 - Q: 무인도 3턴 경과 후 탈출 비용? → A: 3턴 대기 시 비용 없이 무료 자동 탈출 (Option A).
 - Q: 무인도 체류 중 통행료 수금? → A: 위치와 무관하게 소유권은 유효하므로 정상적으로 통행료 수취 (Option A).
 - Q: 건물 분할 매각/다운그레이드? → A: 건물 개별 매각 가능하나, **다운그레이드 없음** (호텔 매각 시 호텔 소멸).
@@ -74,7 +72,6 @@
 - Q: 동시에 여러 플레이어가 서버에 요청 시? → A: **턴 소유자만 액션 허용**. 다른 플레이어 요청은 NOT_YOUR_TURN 에러 반환.
 - Q: 황금열쇠로 이동한 곳이 또 황금열쇠 칸인 경우? → A: **연쇄 실행** (이동 후 새 황금열쇠 카드 룰음).
 - Q: 호스트가 먼저 파산/이탈 시 호스트 권한? → A: **다음 순서 플레이어에게 자동 이전**.
-- Q: 담보 설정된 땅에 도착 시 통행료? → A: **통행료 정상 징수** (담보와 무관). 공식 규칙과 다르게 운영.
 - Q: 모든 플레이어 연결 끊김 시 게임 상태? → A: **30분간 유지 후 자동 종료**. 종료 시 게임 로그 적절히 작성 후 데이터 보관 (endReason: timeout).
 
 ### Session 2026-01-06 (Edge Cases 2차)
@@ -88,6 +85,75 @@
 - Q: 탈것(콩코드/퀸엘리자베스/콜롬비아) 칸 도착 시 이용(이동) 가능한가? → A: **불가능**. 일반 도착(주사위) 시에는 구매하거나 통행료만 지불함. 이동은 황금열쇠 등 강제된 상황에서만 발생.
 - Q: 콜롬비아호(증서)와 우주여행(코너) 요금 차이? → A: **콜롬비아호 증서 칸** = 통행료 40만원 (이동 없음). **우주여행 코너** = 이용료 20만원 (콜롬비아 소유주에게 지불, 없으면 무료) + 우주정류장 이동.
 - Q: 황금열쇠로 탈것 이동 시 규칙? → A: **콩코드→타이베이**, **퀸엘리자베스→베이징** 강제 이동 후 소유주에게 탑승료 지불.
+
+## UI Reference _(mandatory)_
+
+프론트엔드 구현 시 반드시 참조해야 할 UI 레퍼런스 코드입니다.
+
+### Reference Implementation
+
+**파일 경로**: `references/BlueMarbleUI.tsx`
+
+이 파일은 `contracts/types.ts` 및 `contracts/enums.ts`와 완전히 연동되는 React 컴포넌트입니다.
+
+### 주요 컴포넌트
+
+| 컴포넌트               | 설명                                | 관련 타입                              |
+| ---------------------- | ----------------------------------- | -------------------------------------- |
+| **보드 레이아웃**      | 40칸 11x11 CSS Grid                 | `BoardTile`, `TileType`                |
+| **주사위 롤러**        | 애니메이션 포함, 서버 RNG 결과 표시 | `diceState: { die1, die2, isRolling }` |
+| **플레이어 토큰**      | 위치 기반 렌더링, 색상 매핑         | `PlayerState`, `PlayerColor`           |
+| **플레이어 정보 패널** | 현금, 증서 수, 특수 상태 표시       | `PlayerState`                          |
+| **게임 로그**          | 실시간 이벤트 로그                  | `string[]`                             |
+| **구매 모달**          | 땅 구매/패스 선택                   | `purchaseModal`                        |
+| **게임 종료 모달**     | 승자 표시, 재시작 버튼              | `GameStatus.FINISHED`                  |
+
+### Props Interface
+
+```typescript
+interface BlueMarbleUIProps {
+  tiles: BoardTile[]; // 40칸 타일 배열
+  players: PlayerState[]; // 플레이어 상태 배열
+  currentTurnIndex: number; // 현재 턴 인덱스
+  diceState: { die1: number; die2: number; isRolling: boolean };
+  gameStatus: GameStatus; // GameStatus enum
+  turnPhase: TurnPhase; // TurnPhase enum
+  gameLog: string[]; // 게임 로그
+  purchaseModal: {
+    isOpen: boolean;
+    tile: BoardTile | null;
+    price: number;
+  } | null;
+  welfarePot: number; // 사회복지기금 누적액
+
+  // Event Handlers
+  onRollDice: () => void;
+  onBuyProperty: (tileIndex: number) => void;
+  onPassProperty: () => void;
+  onEndTurn: () => void;
+  onRestart: () => void;
+}
+```
+
+### 색상 매핑
+
+| PlayerColor | CSS 클래스      |
+| ----------- | --------------- |
+| `RED`       | `bg-red-500`    |
+| `BLUE`      | `bg-blue-500`   |
+| `YELLOW`    | `bg-yellow-500` |
+| `GREEN`     | `bg-green-500`  |
+
+### 보드 그리드 좌표
+
+40칸 보드는 11x11 CSS Grid로 구현됩니다:
+
+- **Index 0~10**: 하단 행 (우→좌)
+- **Index 11~19**: 좌측 열 (하→상)
+- **Index 20~30**: 상단 행 (좌→우)
+- **Index 31~39**: 우측 열 (상→하)
+
+> **Note**: UI 구현 시 이 레퍼런스를 기반으로 하되, 실제 서버 상태는 `contracts/types.ts`의 `GameState`를 따릅니다.
 
 ## Scope _(mandatory)_
 
@@ -115,11 +181,10 @@
 | 3   | 부동산 구매            | P1       |
 | 4   | 임대료 자동 계산/지불  | P1       |
 | 5   | 건설 (빌라/건물/호텔)  | P1       |
-| 6   | 담보 설정/해제         | P1       |
-| 7   | 턴 관리                | P1       |
-| 8   | 파산 처리 (단순화)     | P2       |
-| 9   | 황금열쇠 (기본 효과만) | P2       |
-| 10  | 실시간 동기화          | P1       |
+| 6   | 턴 관리                | P1       |
+| 7   | 파산 처리 (단순화)     | P2       |
+| 8   | 황금열쇠 (기본 효과만) | P2       |
+| 9   | 실시간 동기화          | P1       |
 
 ### Out-of-Scope (MVP)
 
@@ -134,42 +199,42 @@
 
 ### Game Constants
 
-| Constant             | Value       | Description                          |
-| -------------------- | ----------- | ------------------------------------ |
-| `INITIAL_MONEY`      | 2,000,000원 | 게임 시작 시 플레이어 초기 자금      |
-| `MAX_PLAYERS`        | 4           | 방당 최대 플레이어 수                |
-| `BOARD_TILES`        | 40          | 보드판 총 칸 수                      |
-| `TOTAL_DEEDS`        | 29          | 증서 칸 수 (도시 26 + 탈것 3)        |
-| `GOLDEN_KEY_TILES`   | 6           | 황금열쇠 칸 수                       |
-| `GOLDEN_KEY_CARDS`   | 27종        | 황금열쇠 카드 종류 수                |
-| `SALARY`             | 200,000원   | 출발 통과 시 월급                    |
-| `FUND_DONATE_AMOUNT` | 150,000원   | 사회복지기금 기부 금액               |
-| `TRAVEL_FEE`         | 200,000원   | 우주여행 이용료                      |
-| `ISLAND_ESCAPE_FEE`  | 50,000원    | 무인도 탈출 비용                     |
-| `MORTGAGE_RATE`      | 50%         | 담보 설정 시 지급 비율 (구매가 대비) |
-| `MORTGAGE_INTEREST`  | 10%         | 담보 해제 시 이자율                  |
-| `MORTGAGE_INTEREST`  | 10%         | 담보 해제 시 이자율                  |
-| `DISCONNECT_TIMEOUT` | 180초       | 연결 끊김 후 이탈 처리 시간          |
+| Constant             | Value       | Description                                  |
+| -------------------- | ----------- | -------------------------------------------- |
+| `INITIAL_MONEY`      | 2,930,000원 | 게임 시작 시 플레이어 초기 자금 (3~4인 기준) |
+| `INITIAL_MONEY_2P`   | 5,860,000원 | 2인 플레이 시 초기 자금 (2배)                |
+| `MAX_PLAYERS`        | 4           | 방당 최대 플레이어 수                        |
+| `BOARD_TILES`        | 40          | 보드판 총 칸 수                              |
+| `TOTAL_DEEDS`        | 29          | 증서 칸 수 (도시 26 + 탈것 3)                |
+| `GOLDEN_KEY_TILES`   | 6           | 황금열쇠 칸 수                               |
+| `GOLDEN_KEY_CARDS`   | 27종        | 황금열쇠 카드 종류 수                        |
+| `SALARY`             | 200,000원   | 출발 통과 시 월급                            |
+| `FUND_DONATE_AMOUNT` | 150,000원   | 사회복지기금 기부 금액                       |
+| `TRAVEL_FEE`         | 200,000원   | 우주여행 이용료                              |
+| `ISLAND_ESCAPE_FEE`  | 50,000원    | 무인도 탈출 비용                             |
+| `DISCONNECT_TIMEOUT` | 180초       | 연결 끊김 후 이탈 처리 시간                  |
 
 ## Technical Architecture _(mandatory)_
 
 ### Technology Stack
 
-| Layer                | Technology                 | Notes                                      |
-| -------------------- | -------------------------- | ------------------------------------------ |
-| **Server**           | NestJS 10                  | REST API (방 생성) + WebSocket (게임 액션) |
-| **Client**           | React Native (Expo SDK 50) | QR 스캔, UI 렌더링                         |
-| **State Management** | Zustand                    | 클라이언트 상태 관리                       |
-| **Database**         | PostgreSQL 18              | 게임 데이터 축적 및 분석용                 |
-| **ORM**              | Prisma 5                   | 타입 안전 DB 접근                          |
-| **Cache**            | In-Memory (Node.js 힙)     | 실시간 게임 세션 상태                      |
-| **Real-time**        | WebSocket + Socket.IO      | 0.2~0.5초 내 실시간 반영                   |
+| Layer                | Technology             | Notes                                      |
+| -------------------- | ---------------------- | ------------------------------------------ |
+| **Server**           | Fastify + TypeScript   | REST API (방 생성) + WebSocket (게임 액션) |
+| **Client**           | React 18 + Vite        | 웹 기반 UI (디지털 MVP)                    |
+| **State Management** | Zustand                | 클라이언트 상태 관리                       |
+| **Database**         | PostgreSQL 18          | 게임 데이터 축적 및 분석용                 |
+| **ORM**              | Prisma 5               | 타입 안전 DB 접근                          |
+| **Cache**            | In-Memory (Node.js 힙) | 실시간 게임 세션 상태                      |
+| **Real-time**        | Socket.IO              | 0.2~0.5초 내 실시간 반영                   |
+| **Validation**       | Zod                    | 런타임 타입 검증                           |
+| **Testing**          | Vitest + Playwright    | 단위/E2E 테스트                            |
 
 ### Architecture Overview
 
 ```
-Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState (실시간)
-                                       ⇆ PostgreSQL (영구 저장)
+Client (React + Vite) ⇄ Server (Fastify) ⇄ In-Memory GameState (실시간)
+                                              ⇆ PostgreSQL (영구 저장)
 ```
 
 - **SSOT (Single Source of Truth)**: 서버가 유일한 게임 상태 관리 주체
@@ -326,7 +391,6 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState (실시간)
 - **동시 액션 요청**: 턴 소유자만 액션 허용, 다른 플레이어의 요청은 NOT_YOUR_TURN 에러로 거부
 - **황금열쇠 연쇄**: 황금열쇠로 이동한 곳이 또 황금열쇠 칸이면 연쇄 실행 (새 카드 룰음)
 - **호스트 이탈**: 호스트 파산/이탈 시 다음 순서 플레이어에게 호스트 권한 자동 이전
-- **담보 땅 통행료**: 담보 설정된 땅에 도착해도 통행료 정상 징수 (공식 규칙과 다름)
 - **전원 연결 끊김**: 모든 플레이어 연결 끊김 시 30분간 게임 상태 유지, 이후 미접속 시 로그 작성 후 데이터 보관 (endReason: timeout)
 - **사회복지기금 0원**: 적립금이 0원일 때 수령 칸 도착 시 아무것도 지급 안 함 ("적립금이 없습니다" 메시지 표시)
 - **더블+강제이동**: 더블 주사위 후 황금열쇠로 강제 이동 시 더블 재굴림 권한 유지 (강제 이동 후 다시 주사위)
@@ -353,12 +417,8 @@ Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState (실시간)
 - **FR-013**: 시스템은 턴 종료 버튼을 통해서만 다음 플레이어에게 권한을 이동해야 한다
 - **FR-014**: 시스템은 네트워크 연결 끊김 시 모든 클라이언트에 일시 정지를 알려야 한다
 - **FR-015**: 시스템은 3분(설정 가능) 내 미복귀 시 해당 플레이어를 이탈 처리해야 한다
-- **FR-016**: 시스템은 담보 설정 시 땅 구매가의 50%를 즉시 지급해야 한다
-- **FR-017**: 시스템은 담보 설정 시 건물이 있으면 건물 가격의 50%를 추가 지급해야 한다
-- **FR-018**: 시스템은 담보 해제 시 담보 금액 + 10% 이자를 차감해야 한다
-- **FR-019**: 시스템은 담보 상태의 땅에서는 통행료를 징수하지 않아야 한다
-- FR-020: 시스템은 우주여행 칸 이용 시 이용료(20만원)를 차감하고, 다음 턴에 별도 UI 선택 없이 스캔된 QR 위치로 즉시 이동 처리해야 한다
-- **FR-021**: 시스템은 사회복지기금 기부 칸 도착 시 기부금(15만원)을 차감하고 적립금(fundPool)에 누적해야 한다
+- **FR-016**: 시스템은 우주여행 칸 이용 시 이용료(20만원)를 차감하고, 다음 턴에 별도 UI 선택 없이 스캔된 QR 위치로 즉시 이동 처리해야 한다
+- **FR-017**: 시스템은 사회복지기금 기부 칸 도착 시 기부금(15만원)을 차감하고 적립금(fundPool)에 누적해야 한다
 - **FR-022**: 시스템은 사회복지기금 접수(수령처) 도착 시 적립금 전액을 해당 플레이어에게 지급해야 한다
 - **FR-023**: 시스템은 탈것(콩코드, 퀸엘리자베스, 콜롬비아) 증서 칸 도착 시 이동 없이 통행료(예: 콜롬비아 40만원)만 징수해야 한다
 - **FR-033**: 시스템은 우주여행(코너) 도착 시 20만원을 콜롬비아호 소유주에게(없으면 무료) 지불하고 우주정류장으로 이동 처리해야 한다
@@ -457,7 +517,6 @@ STRUCT PropertySpec {
 STRUCT PropertyState {
   ownerPlayerId: string | null      // null = 미소유 (은행)
   buildingLevel: BuildingLevel      // 0~3
-  isMortgaged: bool                 // 담보 설정 여부
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -790,12 +849,7 @@ FUNCTION settleShortage(payer: PlayerState, amount: int, recipient: Recipient):
       amount = max(0, amount - v)
       IF amount == 0: break
 
-  // C) 담보 설정 (추가 현금 확보)
-  WHILE payer.cash < amount AND existsMortgageableProperty(payer):
-    propId = playerChoosePropertyToMortgage(payer)
-    mortgageValue = calculateMortgageValue(propId)  // 구매가의 50%
-    payer.cash += mortgageValue
-    propStateById[propId].isMortgaged = true
+  // (참고: 담보 기능은 MVP Out-of-Scope)
 ```
 
 ### 7. 특수 칸 로직
@@ -862,8 +916,7 @@ FUNCTION handleSpaceChoiceTurn(player: PlayerState):
 
 ```pseudo
 FUNCTION calculateRent(prop: PropertySpec, pstate: PropertyState) -> int:
-  IF pstate.isMortgaged:
-    RETURN 0                           // 담보 설정 시 통행료 없음
+  // 담보 상태와 무관하게 통행료 정상 징수 (Clarification 결정)
 
   // 건설 불가 부동산
   IF prop.tileType == NO_BUILD_PROPERTY OR prop.tileType == VEHICLE:
@@ -960,13 +1013,13 @@ FUNCTION computeNetWorth(player: PlayerState) -> int:
 
 **Required Entities**:
 
-| Entity        | Required Fields                                                                                                                                                 |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GameRoom      | id, roomCode, status (waiting/playing/finished), hostPlayerId, players[], currentTurnIndex, turnOrder[], createdAt                                              |
-| Player        | id, name, color (red/blue/yellow/green), position (0-39), money, ownedTileIds[], isConnected, isBankrupt, islandTurnsLeft                                       |
-| BoardTile     | id, index (0-39), name, type (property/goldenKey/special/start), colorGroup?, price?, rentLevels[]?, ownerId?, buildingLevel (0-3), isMortgaged, mortgageValue? |
-| GoldenKeyCard | id, message, effectType (move/receive/pay/toIsland/repair), value?, destinationIndex?                                                                           |
-| Transaction   | id, timestamp, fromPlayerId?, toPlayerId?, amount, reason (rent/purchase/build/tax/goldenKey/salary/mortgage)                                                   |
+| Entity        | Required Fields                                                                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| GameRoom      | id, roomCode, status (waiting/playing/finished), hostPlayerId, players[], currentTurnIndex, turnOrder[], createdAt                 |
+| Player        | id, name, color (red/blue/yellow/green), position (0-39), money, ownedTileIds[], isConnected, isBankrupt, islandTurnsLeft          |
+| BoardTile     | id, index (0-39), name, type (property/goldenKey/special/start), colorGroup?, price?, rentLevels[]?, ownerId?, buildingLevel (0-3) |
+| GoldenKeyCard | id, message, effectType (move/receive/pay/toIsland/repair), value?, destinationIndex?                                              |
+| Transaction   | id, timestamp, fromPlayerId?, toPlayerId?, amount, reason (rent/purchase/build/tax/goldenKey/salary)                               |
 
 **Relationships**:
 
@@ -994,8 +1047,6 @@ FUNCTION computeNetWorth(player: PlayerState) -> int:
 | `scan-qr`            | { roomId, playerId, tileIndex }                   | QR 스캔으로 위치 확인 |
 | `buy-property`       | { roomId, playerId, tileIndex }                   | 땅 구매               |
 | `build`              | { roomId, playerId, tileIndex, buildingLevel }    | 건물 건설             |
-| `set-mortgage`       | { roomId, playerId, tileIndex }                   | 담보 설정             |
-| `release-mortgage`   | { roomId, playerId, tileIndex }                   | 담보 해제             |
 | `pay-rent`           | { roomId, payerId, ownerId, amount }              | 통행료 지불           |
 | `island-action`      | { roomId, playerId, action: 'roll'/'pay'/'wait' } | 무인도 탈출 시도      |
 | `end-turn`           | { roomId, playerId }                              | 턴 종료               |
@@ -1050,8 +1101,7 @@ FUNCTION computeNetWorth(player: PlayerState) -> int:
   type: "property",
   colorGroup: string,      // "brown", "sky", "pink", "orange", "red", "yellow", "green", "blue"
   price: number,           // 구매가
-  rentLevels: [number, number, number, number],  // [땅, 빌라, 건물, 호텔]
-  mortgageValue: number    // 담보가 (price * 0.5)
+  rentLevels: [number, number, number, number]  // [땅, 빌라, 건물, 호텔]
 }
 ```
 

@@ -1,0 +1,2 @@
+﻿Copied plan template to E:\github_coop\blue-marble\specs\001-core-game-engine\plan.md
+{"FEATURE_SPEC":"E:\\github_coop\\blue-marble\\specs\\001-core-game-engine\\spec.md","IMPL_PLAN":"E:\\github_coop\\blue-marble\\specs\\001-core-game-engine\\plan.md","SPECS_DIR":"E:\\github_coop\\blue-marble\\specs\\001-core-game-engine","BRANCH":"001-core-game-engine","HAS_GIT":true}

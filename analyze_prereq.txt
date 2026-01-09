@@ -1,0 +1,1 @@
+﻿{"FEATURE_DIR":"E:\\github_coop\\blue-marble\\specs\\001-core-game-engine","AVAILABLE_DOCS":["research.md","data-model.md","contracts/","quickstart.md","tasks.md"]}

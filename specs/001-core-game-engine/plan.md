@@ -1,6 +1,7 @@
 # Implementation Plan: 부루마블 핵심 게임 엔진
 
-**Branch**: `001-core-game-engine` | **Date**: 2026-01-09 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-core-game-engine` | **Date**: 2026-01-09 (Updated) | **Spec**: [spec.md](./spec.md)
+**Last Spec Revision**: 2026-01-09 15:06 - 초기 자금 룰북 기준 수정(293만원), 담보 기능 MVP Out-of-Scope 제외
 **Input**: Feature specification from `/specs/001-core-game-engine/spec.md`
 
 ## Summary

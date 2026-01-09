@@ -100,8 +100,6 @@ export enum TransactionReason {
   GOLDEN_KEY = 'goldenKey',
   SALARY = 'salary',
   START_BONUS = 'startBonus',
-  MORTGAGE = 'mortgage',
-  UNMORTGAGE = 'unmortgage',
   BANKRUPTCY_TRANSFER = 'bankruptcyTransfer',
 }
 

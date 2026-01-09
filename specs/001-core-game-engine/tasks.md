@@ -1,7 +1,7 @@
 # Tasks: 부루마블 핵심 게임 엔진
 
 **Branch**: `001-core-game-engine` | **Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md)
-**Status**: Generated via Speckit on 2026-01-09
+**Status**: Generated via Speckit on 2026-01-09 | **UI Reference**: [BlueMarbleUI.tsx](./references/BlueMarbleUI.tsx)
 
 ## Phase 1: 설정 및 인프라 (Setup & Infrastructure)
 
@@ -37,9 +37,9 @@
 - [ ] T017 [US1] `joinGame(gameId)` API 엔드포인트 및 소켓 이벤트 구현 @server/api
 - [ ] T018 [US1] 플레이어 수 및 시간 제한 선택을 위한 로비 UI 구현 @client/pages
 - [ ] T019 [US1] 플레이어 입장 이벤트를 브로드캐스트하는 WebSocket 로직 구현 @server/websocket
-- [ ] T020 [US1] `startGame` 로직 구현: 순서 셔플, 초기 자금(4인: 293만, 2인: 586만), 위치 0으로 설정 @server/engine
-- [ ] T021 [US1] 게임 보드 UI 렌더링 구현 (40칸 그리드) @client/components
-- [ ] T022 [US1] 보드 위 플레이어 말(Token) 렌더링 구현 @client/components
+- [ ] T020 [US1] `startGame` 로직 구현: 순서 셔플, 초기 자금(3~4인: 293만, 2인: 586만), 위치 0으로 설정 @server/engine
+- [ ] T021 [US1] 게임 보드 UI 렌더링 구현 (40칸 11x11 그리드) - **BlueMarbleUI.tsx 참조** @client/components
+- [ ] T022 [US1] 보드 위 플레이어 말(Token) 렌더링 구현 - **BlueMarbleUI.tsx 참조** @client/components
 - [ ] T023 [US1] E2E 테스트: 4인 게임 생성, 초기 상태 및 자금 확인 @tests/e2e
 
 ## Phase 4: 사용자 스토리 2 - 기본 턴 및 이동 (P1)
@@ -127,10 +127,13 @@
 
 ## Phase 11: 폴리싱 및 최적화
 
-**목표**: UI 개선 및 소소한 기능.
+**목표**: UI 개선, DB 로깅 및 소소한 기능.
 
 - [ ] T066 [US10] 사회복지기금 로직 구현 (기부/수령) @server/engine
 - [ ] T067 연결 끊김 유저를 위한 AI 자동 플레이 구현 (기본 굴리기/구매 로직) @server/ai
 - [ ] T068 [Polish] WebSocket 페이로드 크기 최적화 (필요 시 전체 상태 대신 변경분 전송) @server/socket
 - [ ] T069 [Polish] 주사위, 구매, 지불 이벤트를 위한 효과음 추가 @client/assets
-- [ ] T070 [Polish] 최종 전체 게임 회귀 테스트 (Full Game Regression Test) @tests/e2e
+- [ ] T070 [FR-029] GameEvent 테이블 스키마 및 로깅 서비스 구현 @server/db
+- [ ] T071 [FR-030] TurnSnapshot 저장 로직 구현 (매 턴 시작 시 상태 스냅샷) @server/db
+- [ ] T072 [FR-031/032] 게임 결과 및 의사결정 시간 저장 구현 @server/db
+- [ ] T073 [Polish] 최종 전체 게임 회귀 테스트 (Full Game Regression Test) @tests/e2e

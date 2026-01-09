@@ -30,8 +30,8 @@ TypeScript 5.x (Node.js 20 LTS): Follow standard conventions
 
 ## Recent Changes
 - 001-core-game-engine: Added Node.js 20.x (LTS) + TypeScript 5.x (Strict Mode 필수)
+- 001-core-game-engine: Added Node.js 20.x (LTS) + TypeScript 5.x (Strict Mode 필수)
 - 001-core-game-engine: Added Node.js 20+, TypeScript 5.0+ + NestJS 10 (Server), Expo SDK 50 (Client), Socket.IO (Real-time), Zustand (State)
-- 001-core-game-engine: Added TypeScript 5.3 (Server), TypeScript 5.3 (Client) + NestJS 10, React Native (Expo SDK 50), Socket.IO, Prisma 5
 
 
 <!-- MANUAL ADDITIONS START -->
