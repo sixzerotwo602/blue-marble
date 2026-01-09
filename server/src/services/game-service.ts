@@ -80,7 +80,7 @@ export class GameService {
   static async startGame(gameId: string): Promise<GameState> {
     const game = games[gameId];
     if (!game) throw new Error('Game not found');
-    if (game.players.length < 2) throw new Error('Not enough players');
+    if (game.players.length < 1) throw new Error('Not enough players');
     if (game.status !== GameStatus.WAITING) throw new Error('Game already started');
 
     game.status = GameStatus.PLAYING;

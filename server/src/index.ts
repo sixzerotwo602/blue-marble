@@ -1,6 +1,8 @@
+import 'dotenv/config';
 import Fastify, { FastifyInstance } from 'fastify';
 import { Server } from 'socket.io';
 import { gameRoutes } from './api/routes.js';
+import { GameService } from './services/game-service.js';
 
 const fastify: FastifyInstance = Fastify({ logger: true });
 
@@ -37,7 +39,14 @@ const start = async () => {
       socket.on('joinRoom', (roomId: string) => {
         socket.join(roomId);
         fastify.log.info(`Socket ${socket.id} joined room ${roomId}`);
+        
+        // Send current game state to the reconnected client
+        const game = GameService.getGame(roomId);
+        if (game) {
+             socket.emit('gameUpdate', { gameState: game });
+        }
       });
+
 
       socket.on('ping', () => {
         socket.emit('pong');

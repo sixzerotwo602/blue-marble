@@ -92,10 +92,11 @@ export default function Game() {
       }}
       onBuyProperty={() => handleBuy(true)}
       onPassProperty={() => handleBuy(false)}
-      onEndTurn={() => {}}
-      onRestart={() => {}}
+      onRestart={() => window.location.reload()}
 
       pendingDebt={gameState.pendingDebt || null}
+
+
       onSellBuilding={(propertyId, type) => {
         fetch(`/api/games/${id}/sell-building`, {
             method: 'POST',
@@ -145,8 +146,28 @@ export default function Game() {
           });
       }}
 
+      // T067: Dev Mode (Test Mode)
+      devMode={gameState.devMode || false}
+      onToggleDevMode={() => {
+          fetch(`/games/${id}/dev-mode`, {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json'},
+             body: JSON.stringify({ enabled: !gameState.devMode })
+          });
+      }}
+
+      // End Turn Handler  
+      onEndTurn={() => {
+          fetch(`/games/${id}/end-turn`, {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json'},
+             body: JSON.stringify({ playerId })
+          });
+      }}
+
     />
 
   );
 }
+
 

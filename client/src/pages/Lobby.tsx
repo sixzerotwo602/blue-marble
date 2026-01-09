@@ -11,17 +11,30 @@ export default function Lobby() {
   useEffect(() => {
     if (!id || !gameState) return;
     
+    // Auto-redirect if game is already playing
+    if (gameState.status === 'playing') {
+        navigate(`/game/${id}`);
+        return;
+    }
+
     // Connect socket logic
     if (!socket.connected) {
       socket.io.opts.query = { gameId: id, playerId };
       socket.connect();
-    } // Or just emit joinRoom?
+    } 
 
     // Listeners
     socket.on('playerJoined', (data: any) => {
-      // In a real app we might patch the gameState carefully or refetch
-      // For MVP, server sends full updated gamestate?
       if (data.gameState) setGameState(data.gameState);
+    });
+
+    socket.on('gameUpdate', (data: any) => {
+        if (data.gameState) {
+            setGameState(data.gameState);
+            if (data.gameState.status === 'playing') {
+                navigate(`/game/${id}`);
+            }
+        }
     });
 
     socket.on('gameStarted', (data: any) => {
@@ -29,17 +42,27 @@ export default function Lobby() {
       navigate(`/game/${id}`);
     });
 
+    // Request initial sync (joinRoom)
+    socket.emit('joinRoom', id);
+
     return () => {
       socket.off('playerJoined');
       socket.off('gameStarted');
+      socket.off('gameUpdate');
     };
-  }, [id, gameState, navigate, setGameState, playerId]);
+  }, [id, gameState?.status, navigate, setGameState, playerId]);
 
   const handleStart = async () => {
     try {
-      await fetch(`/api/games/${id}/start`, { method: 'POST' });
+      const res = await fetch(`/api/games/${id}/start`, { method: 'POST' });
+      if (!res.ok) {
+          const err = await res.json();
+          alert(`게임 시작 실패: ${err.error}`);
+          return;
+      }
     } catch (err) {
       console.error(err);
+      alert('서버 통신 오류가 발생했습니다.');
     }
   };
 
@@ -65,11 +88,12 @@ export default function Lobby() {
           <button 
             className="bg-blue-600 text-white px-6 py-2 rounded text-lg font-bold hover:bg-blue-700 disabled:opacity-50"
             onClick={handleStart}
-            disabled={gameState.players.length < 2}
+            disabled={gameState.players.length < 1}
           >
-            Start Game
+            Start Game {gameState.players.length < 2 ? '(Solo Test)' : ''}
           </button>
         )}
+
         {!isHost && <p className="text-gray-500">Waiting for host to start...</p>}
       </div>
     </div>
