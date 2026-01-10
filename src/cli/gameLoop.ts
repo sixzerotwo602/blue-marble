@@ -246,51 +246,57 @@ async function handleBuildingMenu(game: Game, player: any, tileIndex: number): P
 
   if (!tileData?.buildingPrices) return;
 
-  const canVilla = canBuildVilla(player, tileState, tileIndex);
-  const canBuilding = canBuildBuilding(player, tileState, tileIndex);
-  const canHotel = canBuildHotel(player, tileState, tileIndex);
+  // 반복문으로 여러 건물 건설 가능
+  while (true) {
+    const canVilla = canBuildVilla(player, tileState, tileIndex);
+    const canBuilding = canBuildBuilding(player, tileState, tileIndex);
+    const canHotel = canBuildHotel(player, tileState, tileIndex);
 
-  if (!canVilla && !canBuilding && !canHotel) {
-    if (!player.isSecondHalf) {
-      console.log('⚠️ 전반전입니다. 건설할 수 없습니다.');
-    } else {
-      console.log('건설할 수 있는 건물이 없습니다.');
+    if (!canVilla && !canBuilding && !canHotel) {
+      if (!player.isSecondHalf) {
+        console.log('⚠️ 전반전입니다. 건설할 수 없습니다.');
+      } else {
+        console.log('더 이상 건설할 수 있는 건물이 없습니다.');
+      }
+      break;
     }
-    return;
-  }
 
-  displayBuildingMenu(tileIndex, tileState, player, canVilla, canBuilding, canHotel);
+    displayBuildingMenu(tileIndex, tileState, player, canVilla, canBuilding, canHotel);
 
-  const maxChoice = 3;
-  const choice = await promptNumber('선택: ', 0, maxChoice);
+    const maxChoice = 3;
+    const choice = await promptNumber('선택: ', 0, maxChoice);
 
-  switch (choice) {
-    case 1:
-      if (canVilla) {
-        const result = buildVilla(game, player, tileIndex);
-        if (result.success) {
-          console.log(`✓ 별장 건설 완료! 잔고: ${formatMoney(player.money)}`);
-        }
-      }
+    if (choice === 0) {
+      console.log('건설을 종료합니다.');
       break;
-    case 2:
-      if (canBuilding) {
-        const result = buildBuilding(game, player, tileIndex);
-        if (result.success) {
-          console.log(`✓ 빌딩 건설 완료! 잔고: ${formatMoney(player.money)}`);
+    }
+
+    switch (choice) {
+      case 1:
+        if (canVilla) {
+          const result = buildVilla(game, player, tileIndex);
+          if (result.success) {
+            console.log(`✓ 별장 건설 완료! 잔고: ${formatMoney(player.money)}`);
+          }
         }
-      }
-      break;
-    case 3:
-      if (canHotel) {
-        const result = buildHotel(game, player, tileIndex);
-        if (result.success) {
-          console.log(`✓ 호텔 건설 완료! 잔고: ${formatMoney(player.money)}`);
+        break;
+      case 2:
+        if (canBuilding) {
+          const result = buildBuilding(game, player, tileIndex);
+          if (result.success) {
+            console.log(`✓ 빌딩 건설 완료! 잔고: ${formatMoney(player.money)}`);
+          }
         }
-      }
-      break;
-    default:
-      console.log('건설을 하지 않았습니다.');
+        break;
+      case 3:
+        if (canHotel) {
+          const result = buildHotel(game, player, tileIndex);
+          if (result.success) {
+            console.log(`✓ 호텔 건설 완료! 잔고: ${formatMoney(player.money)}`);
+          }
+        }
+        break;
+    }
   }
 }
 

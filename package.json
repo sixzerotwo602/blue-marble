@@ -10,13 +10,20 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["blue-marble", "board-game", "cli"],
+  "keywords": [
+    "blue-marble",
+    "board-game",
+    "cli"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^5.3.0",
+    "@types/node": "^20.0.0",
     "ts-node": "^10.9.0",
-    "vitest": "^1.0.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
   }
 }

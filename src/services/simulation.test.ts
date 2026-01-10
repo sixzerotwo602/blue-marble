@@ -61,25 +61,30 @@ function aiDecidePurchase(player: any, tileIndex: number): boolean {
   return remainingAfterPurchase >= player.money * 0.3;
 }
 
-/** AI가 건물을 건설할지 결정 */
-function aiDecideBuild(player: any, tileState: any, tileIndex: number): 'villa' | 'building' | 'hotel' | 'none' {
-  if (!player.isSecondHalf) return 'none';
+/** AI가 건물을 건설할지 결정 (복수 건설 지원) */
+function aiDecideBuildAll(player: any, game: any, tileIndex: number): void {
+  if (!player.isSecondHalf) return;
   
-  // 잔고의 20% 이상이면 건설
-  const minReserve = player.money * 0.2;
   const tileData = getTileDataByIndex(tileIndex);
-  if (!tileData?.buildingPrices) return 'none';
+  if (!tileData?.buildingPrices || !tileData.canBuild) return;
+  
+  const tileState = game.board[tileIndex];
+  const minReserve = player.money * 0.2;
 
-  if (canBuildHotel(player, tileState, tileIndex) && player.money - tileData.buildingPrices.hotel >= minReserve) {
-    return 'hotel';
+  // 별장 최대 2개
+  while (canBuildVilla(player, tileState, tileIndex) && player.money - tileData.buildingPrices.villa >= minReserve) {
+    buildVilla(game, player, tileIndex);
   }
+  
+  // 빌딩 1개
   if (canBuildBuilding(player, tileState, tileIndex) && player.money - tileData.buildingPrices.building >= minReserve) {
-    return 'building';
+    buildBuilding(game, player, tileIndex);
   }
-  if (canBuildVilla(player, tileState, tileIndex) && player.money - tileData.buildingPrices.villa >= minReserve) {
-    return 'villa';
+  
+  // 호텔 1개
+  if (canBuildHotel(player, tileState, tileIndex) && player.money - tileData.buildingPrices.hotel >= minReserve) {
+    buildHotel(game, player, tileIndex);
   }
-  return 'none';
 }
 
 /** AI가 파산 시 매각할 자산 선택 (가장 싼 것부터) */
@@ -156,36 +161,30 @@ function simulateGame(gameId: number, playerNames: string[]): GameStats {
             purchaseProperty(game, player.id, tileIndex);
             propertiesPurchased++;
 
-            // 건설 결정
+            // 건설 결정 (복수 건설)
             if (tileData.canBuild) {
-              const buildDecision = aiDecideBuild(player, tileState, tileIndex);
-              if (buildDecision === 'villa') {
-                buildVilla(game, player, tileIndex);
-                buildingsBuilt++;
-              } else if (buildDecision === 'building') {
-                buildBuilding(game, player, tileIndex);
-                buildingsBuilt++;
-              } else if (buildDecision === 'hotel') {
-                buildHotel(game, player, tileIndex);
-                buildingsBuilt++;
-              }
+              const beforeBuildings = tileState.buildings.villaCount + 
+                (tileState.buildings.hasBuilding ? 1 : 0) + 
+                (tileState.buildings.hasHotel ? 1 : 0);
+              aiDecideBuildAll(player, game, tileIndex);
+              const afterBuildings = tileState.buildings.villaCount + 
+                (tileState.buildings.hasBuilding ? 1 : 0) + 
+                (tileState.buildings.hasHotel ? 1 : 0);
+              buildingsBuilt += (afterBuildings - beforeBuildings);
             }
           }
         }
       } else if (tileState.ownerId === player.id) {
-        // 본인 땅 - 건설 결정
+        // 본인 땅 - 건설 결정 (복수 건설)
         if (tileData.canBuild) {
-          const buildDecision = aiDecideBuild(player, tileState, tileIndex);
-          if (buildDecision === 'villa') {
-            buildVilla(game, player, tileIndex);
-            buildingsBuilt++;
-          } else if (buildDecision === 'building') {
-            buildBuilding(game, player, tileIndex);
-            buildingsBuilt++;
-          } else if (buildDecision === 'hotel') {
-            buildHotel(game, player, tileIndex);
-            buildingsBuilt++;
-          }
+          const beforeBuildings = tileState.buildings.villaCount + 
+            (tileState.buildings.hasBuilding ? 1 : 0) + 
+            (tileState.buildings.hasHotel ? 1 : 0);
+          aiDecideBuildAll(player, game, tileIndex);
+          const afterBuildings = tileState.buildings.villaCount + 
+            (tileState.buildings.hasBuilding ? 1 : 0) + 
+            (tileState.buildings.hasHotel ? 1 : 0);
+          buildingsBuilt += (afterBuildings - beforeBuildings);
         }
       } else {
         // 타인 땅 - 통행료 지불
@@ -336,11 +335,11 @@ function runSimulation(numGames: number, playerNames: string[]): SimulationRepor
 // ============================================================
 
 describe('게임 시뮬레이션', () => {
-  it('2인 게임 100회 시뮬레이션', () => {
-    const report = runSimulation(100, ['AI_1', 'AI_2']);
+  it('2인 게임 1000회 시뮬레이션', () => {
+    const report = runSimulation(1000, ['AI_1', 'AI_2']);
     
     console.log('\n========================================');
-    console.log('📊 2인 게임 100회 시뮬레이션 결과');
+    console.log('📊 2인 게임 1000회 시뮬레이션 결과');
     console.log('========================================');
     console.log(`완료된 게임: ${report.completedGames}/${report.totalGames}`);
     console.log(`에러 게임: ${report.errorGames}`);
@@ -370,11 +369,11 @@ describe('게임 시뮬레이션', () => {
     expect(report.avgTurns).toBeGreaterThan(0);
   });
 
-  it('4인 게임 50회 시뮬레이션', () => {
+  it('4인 게임 500회 시뮬레이션', () => {
     const report = runSimulation(50, ['AI_1', 'AI_2', 'AI_3', 'AI_4']);
     
     console.log('\n========================================');
-    console.log('📊 4인 게임 50회 시뮬레이션 결과');
+    console.log('📊 4인 게임 500회 시뮬레이션 결과');
     console.log('========================================');
     console.log(`완료된 게임: ${report.completedGames}/${report.totalGames}`);
     console.log(`에러 게임: ${report.errorGames}`);

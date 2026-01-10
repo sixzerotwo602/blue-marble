@@ -28,7 +28,7 @@ npm start
 
 - **초기 자금**: ₩2,000,000
 - **월급**: 출발점 통과 시 ₩200,000
-- **후반전**: 출발점 1회 통과 후 건설 가능
+- **후반전**: 출발점 1회 통과 후 건설 가능 (한 턴에 별장/빌딩/호텔 순차 건설 가능)
 - **더블**: 추가 턴 (최대 3연속)
 - **파산**: 통행료 지불 불가 시 게임 종료
 
@@ -59,6 +59,9 @@ npm run test:watch
 
 # 시뮬레이션만 실행
 npm test -- src/services/simulation.test.ts
+
+# 엑셀 로그 생성 시뮬레이션
+npm test -- src/services/simulationExcel.test.ts
 ```
 
 ### 테스트 구성
@@ -71,6 +74,7 @@ npm test -- src/services/simulation.test.ts
 | `buildingService.test.ts` | 10        | 건설 조건, 비용         |
 | `tollCalculator.test.ts`  | 8         | 통행료 계산, 독점       |
 | `simulation.test.ts`      | 2         | 100게임 자동 시뮬레이션 |
+| `simulationExcel.test.ts` | 1         | 엑셀 로그 생성 (10게임) |
 
 ## 📁 프로젝트 구조
 
@@ -89,7 +93,8 @@ src/
 │   ├── propertyService.ts
 │   ├── buildingService.ts
 │   ├── tollCalculator.ts
-│   └── bankruptcyService.ts
+│   ├── bankruptcyService.ts
+│   └── simulationLogger.ts # 시뮬레이션 로깅
 ├── types/           # 타입 정의
 │   └── index.ts
 └── index.ts         # 진입점
@@ -101,10 +106,11 @@ src/
 - ✅ 2~4인 멀티플레이어
 - ✅ 주사위 2개, 더블 시 추가턴 (3회 제한)
 - ✅ 땅 구매 및 통행료
-- ✅ 별장/빌딩/호텔 건설 (후반전)
+- ✅ 별장/빌딩/호텔 건설 (후반전, 복수 건설 가능)
 - ✅ 독점 시 통행료 2배
 - ✅ 자산 매각 및 파산 처리
 - ✅ 전체 맵 보기
+- ✅ 시뮬레이션 데이터 엑셀 추출 (`logs/`)
 
 ## 📜 라이선스
 
