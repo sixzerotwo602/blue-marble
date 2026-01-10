@@ -264,3 +264,68 @@ export function displayGameEnd(game: Game, winnerId: string | undefined): void {
     console.log(`${index + 1}위: ${player.name} ${status}`);
   });
 }
+
+// ============================================================
+// T057: 전체 보드 맵 표시
+// ============================================================
+
+/** 전체 보드 맵 표시 */
+export function displayBoard(game: Game): void {
+  console.log('');
+  printSeparator();
+  console.log('🗺️  전체 보드 맵');
+  printSeparator();
+
+  // 플레이어 위치 맵
+  const playerPositions: Record<number, string[]> = {};
+  game.players.forEach(p => {
+    if (!p.isBankrupt) {
+      if (!playerPositions[p.position]) playerPositions[p.position] = [];
+      playerPositions[p.position].push(p.name.substring(0, 3));
+    }
+  });
+
+  // 칸별 출력
+  for (let i = 0; i < 40; i++) {
+    const tileData = BOARD_TILES[i];
+    const tileState = game.board[i];
+    const owner = tileState.ownerId 
+      ? game.players.find(p => p.id === tileState.ownerId)?.name.substring(0, 4)
+      : '';
+
+    // 위치 표시
+    const posStr = `${i}`.padStart(2, '0');
+    
+    // 소유자 표시
+    const ownerStr = owner ? `[${owner}]` : '      ';
+
+    // 건물 표시
+    let buildStr = '';
+    if (tileState.buildings.villaCount > 0) buildStr += `V${tileState.buildings.villaCount}`;
+    if (tileState.buildings.hasBuilding) buildStr += 'B';
+    if (tileState.buildings.hasHotel) buildStr += 'H';
+    buildStr = buildStr.padEnd(4, ' ');
+
+    // 플레이어 위치 표시
+    const playersHere = playerPositions[i]?.join(',') ?? '';
+    const playerStr = playersHere ? `◆${playersHere}` : '';
+
+    // 구역 구분
+    let zone = '';
+    if (i === 0) zone = '🏁';
+    else if (i === 10) zone = '🏝️';
+    else if (i === 20) zone = '💰';
+    else if (i === 30) zone = '🚀';
+    else if (i >= 1 && i <= 9) zone = '①';
+    else if (i >= 11 && i <= 19) zone = '②';
+    else if (i >= 21 && i <= 29) zone = '③';
+    else if (i >= 31 && i <= 39) zone = '④';
+
+    console.log(`${zone} ${posStr} ${tileData.name.padEnd(12, ' ')} ${ownerStr} ${buildStr} ${playerStr}`);
+  }
+
+  console.log('');
+  console.log('범례: V=별장, B=빌딩, H=호텔, ◆=플레이어 위치');
+  printSeparator();
+}
+

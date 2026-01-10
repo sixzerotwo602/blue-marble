@@ -36,6 +36,7 @@ import {
   displaySellMenu,
   displayNextTurn,
   displayGameEnd,
+  displayBoard,
   formatMoney,
 } from './display.js';
 import { GAME_CONSTANTS } from '../data/constants.js';
@@ -85,8 +86,18 @@ export async function gameLoop(): Promise<void> {
 
     displayTurnInfo(game, player);
 
+    // 턴 액션 선택
+    let action = '';
+    while (action !== 'r') {
+      console.log('[Enter/r] 주사위 굴리기 | [m] 맵 보기');
+      action = (await prompt('> ')).toLowerCase() || 'r';
+      
+      if (action === 'm' || action === 'map') {
+        displayBoard(game);
+      }
+    }
+
     // 주사위 굴리기
-    await promptEnter('[Enter] 주사위 굴리기');
     const diceResult = rollDice();
     game.lastDiceResult = diceResult;
     displayDiceResult(diceResult);
