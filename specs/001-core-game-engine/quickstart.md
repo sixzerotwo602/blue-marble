@@ -1,215 +1,139 @@
-# Quickstart: 부루마블 핵심 게임 엔진
+# Quickstart: 부루마블 MVP 핵심 엔진 (CLI 테스트 모드)
 
-**Feature**: 001-core-game-engine  
-**Date**: 2026-01-04
+**Feature**: 001-core-game-engine
+**Date**: 2026-01-10
 
 ## Prerequisites
 
-- Node.js 20 LTS
-- npm 10+
-- Expo CLI (`npm install -g expo-cli`)
-- iOS Simulator 또는 Android Emulator (또는 실제 기기)
+- Node.js 18+
+- npm 9+ 또는 pnpm 8+
 
----
-
-## 1. Server Setup
+## Setup
 
 ```bash
-# 프로젝트 루트에서 서버 초기화
-mkdir server && cd server
+# 1. 저장소 이동
+cd e:/github_coop/blue-marble
 
-# NestJS 프로젝트 생성
-npx @nestjs/cli new . --skip-git --package-manager npm
+# 2. 의존성 설치
+npm install
 
-# 필수 의존성 설치
-npm install @nestjs/websockets @nestjs/platform-socket.io socket.io uuid
+# 3. 빌드
+npm run build
 
-# 개발 의존성
-npm install -D @types/uuid
-
-# 서버 실행
-npm run start:dev
+# 4. 게임 실행
+npm start
 ```
 
-### 환경 변수 (.env)
+## Project Structure
 
-```env
-PORT=3000
-CORS_ORIGIN=*
-DISCONNECT_TIMEOUT_MS=180000
+```text
+blue-marble/
+├── src/
+│   ├── cli/                  # CLI 입출력
+│   │   ├── prompts.ts        # 사용자 입력 처리
+│   │   ├── display.ts        # 화면 출력 포매터
+│   │   └── gameLoop.ts       # 메인 게임 루프
+│   ├── services/             # 비즈니스 로직
+│   │   ├── gameService.ts    # 게임 흐름
+│   │   ├── diceService.ts    # 주사위
+│   │   ├── propertyService.ts # 땅 구매
+│   │   ├── buildingService.ts # 건물 건설
+│   │   ├── tollCalculator.ts  # 통행료 계산
+│   │   └── bankruptcyService.ts # 파산 처리
+│   ├── data/                 # 정적 데이터
+│   │   ├── boardData.ts      # 40칸 보드판
+│   │   └── constants.ts      # 게임 상수
+│   ├── types/                # TypeScript 타입
+│   │   └── index.ts
+│   └── index.ts              # 엔트리 포인트
+├── tests/                    # 테스트
+│   └── unit/
+├── package.json
+└── tsconfig.json
 ```
 
----
-
-## 2. Client Setup
+## Key Commands
 
 ```bash
-# 프로젝트 루트에서 클라이언트 초기화
-cd .. && mkdir client && cd client
+# 개발 모드 (ts-node)
+npm run dev
 
-# Expo 프로젝트 생성
-npx create-expo-app@latest . --template expo-template-blank-typescript
+# 빌드
+npm run build
 
-# 필수 의존성 설치
-npx expo install expo-camera expo-barcode-scanner
-npm install socket.io-client zustand
+# 실행
+npm start
 
-# 개발 서버 실행
-npx expo start
+# 테스트
+npm run test
 ```
 
-### 환경 변수 (app.config.js)
+## Game Flow
 
-```javascript
-export default {
-  expo: {
-    // ...
-    extra: {
-      serverUrl: process.env.SERVER_URL || "http://localhost:3000",
-    },
-  },
-};
+```mermaid
+stateDiagram-v2
+    [*] --> MainMenu: npm start
+    MainMenu --> Setup: 1. 새 게임
+
+    state Setup {
+        [*] --> PlayerCount: 플레이어 수 입력
+        PlayerCount --> Names: 이름 입력
+        Names --> [*]
+    }
+
+    Setup --> GameLoop: 게임 시작
+
+    state GameLoop {
+        [*] --> ShowTurn: 턴 정보 출력
+        ShowTurn --> RollDice: Enter
+        RollDice --> Move: 이동
+        Move --> TileAction: 칸 처리
+        TileAction --> NextTurn: 턴 종료
+        NextTurn --> ShowTurn: 다음 플레이어
+    }
+
+    GameLoop --> GameEnd: 1명 생존
+    GameEnd --> [*]
 ```
 
----
+## Example Session
 
-## 3. Key Files to Create
-
-### Server
-
-| Path                                | Purpose           |
-| ----------------------------------- | ----------------- |
-| `src/game/game.module.ts`           | Game 모듈 정의    |
-| `src/game/game.gateway.ts`          | WebSocket Gateway |
-| `src/game/game.service.ts`          | 게임 로직         |
-| `src/models/*.ts`                   | 데이터 모델       |
-| `src/constants/board-data.ts`       | 32칸 보드 데이터  |
-| `src/constants/golden-key-cards.ts` | 27종 카드 데이터  |
-
-### Client
-
-| Path                        | Purpose              |
-| --------------------------- | -------------------- |
-| `services/socketService.ts` | Socket.IO 클라이언트 |
-| `stores/gameStore.ts`       | Zustand 스토어       |
-| `components/QRScanner.tsx`  | QR 스캐너            |
-| `components/BoardView.tsx`  | 보드판 뷰            |
-| `app/room/create.tsx`       | 방 생성 화면         |
-| `app/room/[code].tsx`       | 게임 화면            |
-
----
-
-## 4. Development Workflow
-
-```bash
-# Terminal 1: 서버 실행 (핫 리로드)
-cd server && npm run start:dev
-
-# Terminal 2: 클라이언트 실행
-cd client && npx expo start
-
-# Terminal 3: 테스트 실행
-cd server && npm test -- --watch
 ```
+$ npm start
 
----
+=== 부루마블 테스트 모드 ===
+1. 새 게임 시작
+2. 종료
+선택: 1
 
-## 5. Testing
+플레이어 수를 입력하세요 (2-4): 2
+플레이어 1 이름: Alice
+플레이어 2 이름: Bob
 
-### Unit Tests
+게임을 시작합니다!
+턴 순서: Alice → Bob
 
-```bash
-cd server
+========================================
+[턴 1] Alice의 차례 (현재 위치: 출발)
+잔고: ₩2,000,000 | 소유 땅: 없음
+========================================
+[Enter] 주사위 굴리기
+>
 
-# 전체 테스트
-npm test
+주사위: [3] + [4] = 7
+이동: 출발(0) → 싱가포르(7)
 
-# 파산 로직만 테스트 (Constitution Required)
-npm test -- --testPathPattern=bankruptcy.spec
+--- 싱가포르 ---
+소유자: 없음 | 가격: ₩100,000
+구매하시겠습니까? (Y/N): y
 
-# 커버리지
-npm test -- --coverage
+✓ 싱가포르 구매 완료!
+잔고: ₩2,000,000 → ₩1,900,000
+
+[Enter] 턴 종료
+>
+
+========================================
+[턴 2] Bob의 차례 (현재 위치: 출발)
+...
 ```
-
-### Integration Tests
-
-```bash
-cd server
-
-# WebSocket 통합 테스트
-npm test -- --testPathPattern=game.gateway.spec
-```
-
-### Manual Test Flow
-
-1. **방 생성 테스트**
-
-   - 앱 실행 → "새 게임 만들기" 클릭
-   - 6자리 방 코드 확인
-   - 다른 기기에서 방 코드로 입장
-
-2. **QR 스캔 테스트**
-
-   - 주사위 결과 입력 (예: 7)
-   - 앱에서 도착지 표시 확인
-   - 도착지 QR 스캔 → 위치 업데이트 확인
-   - 잘못된 QR 스캔 → "잘못된 위치입니다" 에러 확인
-
-3. **실시간 동기화 테스트**
-   - 플레이어 A가 땅 구매
-   - 플레이어 B, C, D 화면에서 소유권 표시 확인
-
----
-
-## 6. Common Issues
-
-### WebSocket Connection Failed
-
-```typescript
-// client/services/socketService.ts
-// 로컬 개발 시 IP 주소 사용
-const socket = io("http://192.168.x.x:3000", {
-  transports: ["websocket"],
-});
-```
-
-### Expo Camera Permission
-
-```json
-// app.json
-{
-  "expo": {
-    "plugins": [
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "QR 코드 스캔을 위해 카메라 권한이 필요합니다."
-        }
-      ]
-    ]
-  }
-}
-```
-
-### CORS Issues
-
-```typescript
-// server/src/game/game.gateway.ts
-@WebSocketGateway({
-  cors: {
-    origin: '*',
-    credentials: true,
-  },
-})
-```
-
----
-
-## 7. Next Steps
-
-1. `/speckit.tasks`로 태스크 목록 생성
-2. Phase 1: Server Foundation 구현
-3. Phase 2: Data Models & Constants 구현
-4. Phase 3: Client Foundation 구현
-5. Phase 4: Core Components 구현
-6. Phase 5: Tests 구현

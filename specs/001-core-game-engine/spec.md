@@ -1,502 +1,351 @@
-# Feature Specification: 부루마블 핵심 게임 엔진
+# Feature Specification: 부루마블 MVP 핵심 엔진 (CLI 테스트 모드)
 
 **Feature Branch**: `001-core-game-engine`  
-**Created**: 2026-01-04  
+**Created**: 2026-01-10  
 **Status**: Draft  
-**Input**: Notion 문서 "부루마블(블루마블) 요소 정리" 기반
+**Input**: B 옵션 + 테스트용 싱글 플레이어 CLI 모드
 
 ## Clarifications
 
-### Session 2026-01-04
+### Session 2026-01-10
 
-- Q: 서버 아키텍처 및 실시간 통신 방식? → A: NestJS 10 + WebSocket/Socket.IO 기반, In-Memory 상태 관리
-- Q: MVP Out-of-Scope 범위? → A: 핵심 가치(Bankless, Math-free, Sync) 기반 최소 기능만 In-Scope
-- Q: 호스트와 일반 플레이어의 권한 차이? → A: 호스트는 게임 시작만 담당 (중도 종료/일시 정지 없음)
-- Q: 담보 설정 시 자산 가치 산정 기준? → A: 구매가의 50% (건물 포함 시 건물 가격의 50% 추가)
-- Q: 초기 플레이어 자금? → A: 200만원 (공식 부루마블 규칙)
-- Q: 우주여행 특수 칸 이동 가능 범위? → A: 보드판 40칸 중 어디든 이동 가능 (원본 규칙, QR 스캔 검증 필수)
-- Q: 올림픽 개최 특수 칸 효과? → A: 황금열쇠 카드에 해당 효과 없음, MVP에서 제외 (Edge Case에서 삭제)
-- Q: 주사위 더블 3회 연속 시 무인도 직행? → A: MVP에서 제외 (공식 규칙 아님, Edge Case에서 삭제)
-- Q: 사회복지기금 칸 효과? → A: 2칸 + 적립 시스템 (원본 규칙). 서울-뉴욕 사이에 모금 칸(150,000원 적립), 코너 3번이 수령처(적립금 전액 수령)
+- Q: 복합 건물(별장2 + 빌딩1 + 호텔1) 있을 때 통행료 계산 방식? → A: 합산 방식 - 모든 건물 통행료를 합산하여 계산
+- Q: UI 구현 방식? → A: 터미널 텍스트 기반 CLI (React UI 제거)
+- Q: 출발점 "통과"의 정의? → A: 지나가기만 해도 후반전 진입 (출발점에 정확히 멈추지 않아도 됨)
+- Q: 땅 구매 직후 건설 가능? → A: 가능 - 같은 턴에 구매 후 바로 건설 가능
+- Q: 더블 추가 턴에서 건설 가능? → A: 가능 - 자신의 턴이므로 건설 가능
+- Q: 전반전/후반전 땅 구매? → A: 무관 - 전반전/후반전 모두 땅 구매 가능
 
-## Scope _(mandatory)_
-
-### User Roles
-
-| Role       | Description          | Permissions                      |
-| ---------- | -------------------- | -------------------------------- |
-| **Host**   | 방을 생성한 플레이어 | 게임 시작 버튼 활성화            |
-| **Player** | 방에 입장한 플레이어 | 턴 진행, 구매, 건설 등 게임 액션 |
-
-> **Note**: 호스트도 게임 중에는 일반 플레이어와 동일한 권한을 가짐. 중도 종료/일시 정지/강퇴 기능 없음.
+## Scope
 
 ### Core Values
 
 - **Bankless**: 현금 없이 앱이 모든 금전 거래 처리
 - **Math-free**: 계산 없이 자동 임대료/통행료 산정
-- **Sync**: 모든 플레이어가 실시간으로 동일한 상태 공유
+- **Single Controller**: 한 명이 2~4명의 플레이어를 모두 컨트롤 (테스트용)
+- **CLI First**: 터미널에서 텍스트로 모든 게임 제어
 
 ### In-Scope (MVP)
 
-| #   | Feature                | Priority |
-| --- | ---------------------- | -------- |
-| 1   | 방 생성/참가           | P1       |
-| 2   | QR 스캔 → 위치 확인    | P1       |
-| 3   | 부동산 구매            | P1       |
-| 4   | 임대료 자동 계산/지불  | P1       |
-| 5   | 건설 (빌라/건물/호텔)  | P1       |
-| 6   | 담보 설정/해제         | P1       |
-| 7   | 턴 관리                | P1       |
-| 8   | 파산 처리 (단순화)     | P2       |
-| 9   | 황금열쇠 (기본 효과만) | P2       |
-| 10  | 실시간 동기화          | P1       |
+| #   | Feature       | Priority | Description                                            |
+| --- | ------------- | -------- | ------------------------------------------------------ |
+| 1   | 게임 설정     | P1       | 플레이어 수(2~4명) 터미널 입력, 각 플레이어 이름 설정  |
+| 2   | 주사위 & 이동 | P1       | Enter 입력으로 자동 주사위 2개 굴림, 결과 및 위치 출력 |
+| 3   | 땅 구매       | P1       | 빈 땅 도착 시 Y/N 입력으로 구매/패스 선택              |
+| 4   | 건물 건설     | P1       | 메뉴 번호 입력으로 별장/빌딩/호텔 건설 선택            |
+| 5   | 통행료 지불   | P1       | 타인 땅 도착 시 자동 통행료 계산 및 지불 출력          |
+| 6   | 파산 처리     | P1       | 잔고 부족 시 매각 메뉴 표시, 선택으로 처리             |
+| 7   | 턴 관리       | P1       | 턴 종료 후 다음 플레이어 표시, 1명 남으면 종료         |
 
 ### Out-of-Scope (MVP)
 
-- 플레이어 간 거래 협상 (땅/건물 매매)
-- 관전 모드
-- 배팅/베팅 시스템
-- 게임 리플레이 기능
-- 리더보드/랭킹 시스템
-- 지속적 데이터 저장 (세션 종료 시 데이터 소멸)
+- 방 코드 생성/입장 (제거됨)
+- QR 코드 스캔 (제거됨)
+- 그래픽 UI / 웹 인터페이스 (제거됨)
+- 황금열쇠 카드
+- 무인도/감옥 처리
+- 우주여행/사회복지기금 특수 칸
+- 담보 설정/해제
+- 대출 시스템
+- 네트워크 동기화
 
 ### Game Constants
 
-| Constant              | Value       | Description                          |
-| --------------------- | ----------- | ------------------------------------ |
-| `INITIAL_MONEY`       | 2,000,000원 | 게임 시작 시 플레이어 초기 자금      |
-| `MAX_PLAYERS`         | 4           | 방당 최대 플레이어 수                |
-| `BOARD_TILES`         | 40          | 보드판 총 칸 수                      |
-| `TOTAL_DEEDS`         | 29          | 증서 칸 수 (도시 26 + 탈것 3)        |
-| `GOLDEN_KEY_TILES`    | 6           | 황금열쇠 칸 수                       |
-| `GOLDEN_KEY_CARDS`    | 27종        | 황금열쇠 카드 종류 수                |
-| `SALARY`              | 200,000원   | 출발 통과 시 월급                    |
-| `FUND_DONATE_AMOUNT`  | 150,000원   | 사회복지기금 기부 금액               |
-| `TRAVEL_FEE`          | 200,000원   | 우주여행 이용료                      |
-| `ISLAND_ESCAPE_FEE`   | 50,000원    | 무인도 탈출 비용                     |
-| `MORTGAGE_RATE`       | 50%         | 담보 설정 시 지급 비율 (구매가 대비) |
-| `MORTGAGE_INTEREST`   | 10%         | 담보 해제 시 이자율                  |
-| `MONOPOLY_MULTIPLIER` | 2x          | 독점 시 통행료 배수                  |
-| `DISCONNECT_TIMEOUT`  | 180초       | 연결 끊김 후 이탈 처리 시간          |
+| Constant              | Value       | Description                     |
+| --------------------- | ----------- | ------------------------------- |
+| `INITIAL_MONEY`       | 2,000,000원 | 게임 시작 시 플레이어 초기 자금 |
+| `MAX_PLAYERS`         | 4           | 최대 플레이어 수                |
+| `MIN_PLAYERS`         | 2           | 최소 플레이어 수                |
+| `BOARD_TILES`         | 40          | 보드판 총 칸 수                 |
+| `SALARY`              | 200,000원   | 출발 통과 시 월급               |
+| `MONOPOLY_MULTIPLIER` | 2x          | 독점 시 통행료 배수             |
 
-## Technical Architecture _(mandatory)_
+### Building Rules (건물 규칙)
 
-### Technology Stack
+| Building        | Max Count | Description                      |
+| --------------- | --------- | -------------------------------- |
+| 별장 (Villa)    | 2개       | 각각 별도로 건설 가능            |
+| 빌딩 (Building) | 1개       | 별장과 독립적으로 건설 가능      |
+| 호텔 (Hotel)    | 1개       | 별장/빌딩과 독립적으로 건설 가능 |
 
-| Layer                | Technology                 | Notes                                      |
-| -------------------- | -------------------------- | ------------------------------------------ |
-| **Server**           | NestJS 10                  | REST API (방 생성) + WebSocket (게임 액션) |
-| **Client**           | React Native (Expo SDK 50) | QR 스캔, UI 렌더링                         |
-| **State Management** | Zustand                    | 클라이언트 상태 관리                       |
-| **Database**         | In-Memory (Node.js 힙)     | MVP 단계, DB 없음                          |
-| **Real-time**        | WebSocket + Socket.IO      | 0.2~0.5초 내 실시간 반영                   |
+### Construction Timing (건설 타이밍 규칙)
 
-### Architecture Overview
+**전반전/후반전 (개인별 적용)**:
+
+| Phase  | 조건                                      | 땅 구매 | 건물 건설 |
+| ------ | ----------------------------------------- | ------- | --------- |
+| 전반전 | 아직 출발점 1회 통과 전                   | ✅ 가능 | ❌ 불가   |
+| 후반전 | 출발점 1회 이상 통과 (지나가기만 해도 OK) | ✅ 가능 | ✅ 가능   |
+
+**건설 가능 조건**:
+
+1. 자신의 턴일 것
+2. 주사위를 굴려 이동한 후 도착한 칸이 본인 소유일 것
+3. 해당 플레이어가 후반전 상태일 것
+
+**상세 규칙**:
+
+- 땅 구매 직후 **즉시 건설 가능** (같은 턴에 구매 → 건설)
+- 더블로 추가 턴 획득 시 **건설 가능** (자신의 턴이므로)
+- 자신의 턴이 아닐 때는 **건설 불가**
+- 출발점을 **지나가기만 해도** 후반전 진입 (정확히 멈추지 않아도 됨)
+
+### Toll Calculation Rule (통행료 계산 규칙)
+
+통행료 = 대지료 + (별장1 통행료) + (별장2 통행료) + (빌딩 통행료) + (호텔 통행료)
+
+> **합산 방식**: 모든 건물 통행료를 합산. 독점 시 2배 적용.
+
+---
+
+## CLI Interface Design
+
+### 메인 메뉴 (게임 시작 전)
 
 ```
-Client (Expo App) ⇄ Server (NestJS) ⇄ In-Memory GameState
+=== 부루마블 테스트 모드 ===
+1. 새 게임 시작
+2. 종료
+선택: _
 ```
 
-- **SSOT (Single Source of Truth)**: 서버가 유일한 게임 상태 관리 주체
-- **REST API**: 방 생성 등 비실시간 작업에만 사용
-- **WebSocket**: 모든 게임 액션 처리 및 상태 브로드캐스트
+### 게임 설정
 
-### Communication Flow
+```
+플레이어 수를 입력하세요 (2-4): 3
+플레이어 1 이름: Alice
+플레이어 2 이름: Bob
+플레이어 3 이름: Charlie
 
-1. 사용자 QR 스캔 → Client가 WebSocket으로 `scan-qr` 이벤트 전송
-2. Server가 유효성 검증 후 통행료 계산 및 자산 차감
-3. Server가 변경된 전체 GameState를 `state-updated` 이벤트로 브로드캐스트
-4. Client가 수신된 State로 Zustand Store 갱신 → UI 리렌더링
+게임을 시작합니다!
+턴 순서: Alice → Bob → Charlie
+```
 
-### Network Resilience
+### 게임 진행 (턴)
 
-- 네트워크 끊김 시 → Pause 상태
-- 재접속 시 → Resume 및 상태 복구
-- 모든 행동 이벤트 로그 기록
+```
+========================================
+[턴 5] Alice의 차례 (현재 위치: 출발)
+잔고: ₩1,800,000 | 소유 땅: 타이베이, 베이징
+========================================
+[Enter] 주사위 굴리기
+>
+
+주사위: [4] + [3] = 7
+이동: 출발(0) → 싱가포르(7)
+
+--- 싱가포르 ---
+소유자: 없음 | 가격: ₩100,000
+구매하시겠습니까? (Y/N): _
+```
+
+### 건설 메뉴 (본인 땅)
+
+```
+--- 타이베이 (본인 소유) ---
+현재 건물: 별장 1개
+건설 가격: 별장 ₩50,000 | 빌딩 ₩150,000 | 호텔 ₩250,000
+
+1. 별장 건설 (₩50,000)
+2. 빌딩 건설 (₩150,000)
+3. 호텔 건설 (₩250,000)
+0. 건설 안함
+선택: _
+```
+
+### 통행료 지불
+
+```
+--- 베이징 (Bob 소유) ---
+건물: 별장 2개 + 빌딩
+통행료: ₩60,000 + ₩180,000 = ₩240,000
+
+₩240,000를 Bob에게 지불합니다.
+Alice 잔고: ₩1,800,000 → ₩1,560,000
+```
+
+### 파산 처리
+
+```
+⚠️ 잔고 부족! 통행료 ₩500,000 필요, 현재 잔고 ₩200,000
+
+자산 매각 메뉴:
+1. [건물] 타이베이 별장 매각 (₩50,000)
+2. [건물] 베이징 빌딩 매각 (₩150,000)
+3. [땅] 타이베이 매각 (₩25,000, 50%)
+4. 파산 선언
+선택: _
+```
+
+### 게임 종료
+
+```
+========================================
+🎉 게임 종료! 승자: Alice
+========================================
+최종 순위:
+1위: Alice (₩5,200,000)
+2위: Bob (파산)
+3위: Charlie (파산)
+
+다시 하시겠습니까? (Y/N): _
+```
+
+---
 
 ## User Scenarios & Testing _(mandatory)_
 
-### User Story 1 - 게임방 생성 및 입장 (Priority: P1)
+### User Story 1 - 게임 설정 및 시작 (Priority: P1)
 
-플레이어가 새로운 게임방을 생성하거나 기존 방에 입장하여 다른 플레이어들과 함께 게임을 시작할 수 있다. 방에 입장한 순서대로 캐릭터(말 색상)가 자동으로 배정되며, 전원 입장 후 호스트가 게임을 시작할 수 있다.
+한 명의 사용자가 터미널에서 2~4명의 플레이어 수와 이름을 입력하여 게임을 시작할 수 있다.
 
-**Why this priority**: 게임의 가장 기본적인 진입점이며, 이 기능 없이는 다른 모든 기능이 작동하지 않음.
+**Why this priority**: 게임의 진입점.
 
-**Independent Test**: 4명의 사용자가 각자의 기기에서 앱을 통해 같은 방에 입장하고, 각각 다른 색상의 말이 배정되는 것을 확인.
+**Independent Test**: 플레이어 수 3 입력 → 이름 3개 입력 → 턴 순서 출력 확인
 
 **Acceptance Scenarios**:
 
-1. **Given** 앱이 설치된 상태, **When** 사용자가 "새 게임 만들기"를 선택, **Then** 고유한 방 코드가 생성되고 해당 방에 호스트로 입장
-2. **Given** 방 코드가 있는 상태, **When** 사용자가 방 코드를 입력하고 입장, **Then** 입장 순서에 따라 캐릭터(말 색상)가 자동 배정
-3. **Given** 4명이 모두 입장한 상태, **When** 호스트가 "게임 시작"을 누름, **Then** 서버가 순서를 랜덤으로 결정하고 모든 플레이어에게 순서 공지
+1. **Given** CLI 실행, **When** 플레이어 수(2~4) 입력, **Then** 해당 수만큼 이름 입력 프롬프트
+2. **Given** 모든 이름 입력 완료, **When** Enter, **Then** 순서 랜덤 결정 후 게임 시작 메시지 출력
+3. **Given** 게임 시작, **When** 초기화, **Then** 각 플레이어 초기 자금 200만원 내부 설정
 
 ---
 
 ### User Story 2 - 주사위 굴리기 및 이동 (Priority: P1)
 
-자신의 턴에 플레이어가 실물 주사위를 굴린 후 결과를 앱에 입력하고, 도착지의 QR 코드를 스캔하여 이동을 완료한다. 서버는 QR 스캔을 통해 올바른 위치로 이동했는지 검증한다.
+현재 턴인 플레이어가 Enter를 누르면 주사위 2개가 자동으로 굴려지고, 결과만큼 이동하여 새 위치가 출력된다.
 
-**Why this priority**: 게임 진행의 핵심 메커니즘으로, 턴마다 반복되는 가장 빈번한 액션.
+**Why this priority**: 게임 진행의 핵심.
 
-**Independent Test**: 플레이어가 주사위 결과 "7"을 입력하고 7칸 떨어진 도착지 QR을 스캔하면 위치가 업데이트되고, 잘못된 QR 스캔 시 에러 메시지가 표시됨.
-
-**Acceptance Scenarios**:
-
-1. **Given** 자신의 턴인 상태, **When** 주사위 결과(예: 7)를 입력, **Then** 앱에 이동해야 할 목적지가 표시됨
-2. **Given** 주사위 결과 입력 후, **When** 올바른 도착지 QR 스캔, **Then** 서버가 위치를 업데이트하고 도착지 이벤트 활성화
-3. **Given** 주사위 결과 입력 후, **When** 잘못된 QR 스캔, **Then** "여기가 아닙니다" 에러 메시지 표시 및 재스캔 요청
-
----
-
-### User Story 3 - 땅 구매 및 건물 건설 (Priority: P1)
-
-플레이어가 빈 땅에 도착했을 때 해당 땅을 구매하고, 이미 소유한 땅에서 건물(별장, 빌딩, 호텔)을 건설하여 자산을 확장할 수 있다.
-
-**Why this priority**: 부루마블의 핵심 전략 요소이며, 자산 축적과 승리 조건에 직결.
-
-**Independent Test**: 빈 땅 도착 시 구매 버튼이 활성화되고, 구매 후 해당 땅이 플레이어 소유로 표시되며, 재방문 시 건물 건설 옵션이 제공됨.
+**Independent Test**: Enter 입력 → 주사위 2개 값(1~6) 출력 → 합산 이동 → 새 위치 출력
 
 **Acceptance Scenarios**:
 
-1. **Given** 빈 땅에 도착한 상태, **When** "구매" 버튼 클릭, **Then** 해당 가격만큼 차감되고 땅 소유권 획득
-2. **Given** 본인 소유 땅에 도착한 상태, **When** "건물 건설" 클릭, **Then** 건물 종류 선택(별장/빌딩/호텔) 후 비용 차감 및 건물 추가
-3. **Given** 잔고가 부족한 상태, **When** 구매 또는 건설 시도, **Then** "잔고 부족" 알림 및 액션 불가
+1. **Given** 자신의 턴, **When** Enter 입력, **Then** 주사위 2개 값과 합계 출력
+2. **Given** 주사위 결과, **When** 이동, **Then** 새 위치와 칸 정보 출력
+3. **Given** 이동 중 출발점 통과, **When** 위치 업데이트, **Then** "월급 ₩200,000 지급" 출력
+4. **Given** 주사위가 더블, **When** 턴 처리 완료, **Then** "더블! 추가 턴" 출력
 
 ---
 
-### User Story 4 - 통행료 지불 (Priority: P1)
+### User Story 3 - 땅 구매 (Priority: P1)
 
-플레이어가 다른 플레이어 소유의 땅에 도착했을 때 통행료가 자동으로 계산되어 지불된다. 잔고 부족 시 담보/매각 옵션이 제공된다.
+빈 땅에 도착했을 때 Y/N 입력으로 구매 또는 패스를 선택할 수 있다.
 
-**Why this priority**: 플레이어 간 경제적 상호작용의 핵심이며, 파산 메커니즘과 연결.
-
-**Independent Test**: 타인 소유 땅 도착 시 통행료 팝업이 표시되고, 확인 시 자동으로 금액이 이체됨.
+**Independent Test**: 빈 땅 도착 → "구매하시겠습니까? (Y/N)" 출력 → Y 입력 → 구매 완료 메시지
 
 **Acceptance Scenarios**:
 
-1. **Given** 타인 소유 땅(건물 있음)에 도착, **When** 통행료 팝업 확인, **Then** 건물 수준에 따른 통행료가 자동 차감되고 소유주에게 이체
-2. **Given** 잔고가 통행료보다 적은 상태, **When** 통행료 팝업 표시, **Then** "담보 설정" 또는 "자산 매각" 옵션 제공
-3. **Given** 독점(같은 색상 그룹 모두 소유) 상태, **When** 통행료 계산, **Then** 기본 통행료의 2배 적용
+1. **Given** 빈 땅 도착, **When** Y 입력, **Then** 구매 완료, 잔고 차감 메시지 출력
+2. **Given** 빈 땅 도착, **When** N 입력, **Then** "구매 패스" 출력
+3. **Given** 잔고 부족, **When** 빈 땅 도착, **Then** "잔고 부족, 구매 불가" 출력
 
 ---
 
-### User Story 5 - 황금열쇠 이벤트 처리 (Priority: P2)
+### User Story 4 - 건물 건설 (Priority: P1)
 
-플레이어가 황금열쇠 칸에 도착하면 무작위 카드가 뽑히고, 카드 내용에 따른 효과가 적용된다. 강제 이동 카드의 경우 지정된 칸의 QR을 스캔해야 턴이 진행된다.
+본인 소유 땅에 도착하면 메뉴 번호 입력으로 건물을 건설할 수 있다.
 
-**Why this priority**: 게임의 재미와 랜덤성을 제공하는 중요 요소이나, 기본 이동/거래 후 구현 가능.
-
-**Independent Test**: 황금열쇠 칸 도착 시 카드가 표시되고, 금전 카드는 즉시 적용, 이동 카드는 QR 스캔 후 적용됨.
+**Independent Test**: 본인 땅 도착 → 건설 메뉴 출력 → 1 입력 → 별장 건설 완료 메시지
 
 **Acceptance Scenarios**:
 
-1. **Given** 황금열쇠 칸 도착, **When** 카드 뽑기, **Then** 27종 카드 중 하나가 랜덤 표시
-2. **Given** "부산으로 이동" 카드, **When** 부산 QR 스캔, **Then** 위치가 부산으로 업데이트되고 부산 이벤트 발생
-3. **Given** "은행에서 10만원 받기" 카드, **When** 카드 확인, **Then** 즉시 10만원 지급
+1. **Given** 본인 땅 도착, **When** 1 입력, **Then** 별장 건설 완료 출력
+2. **Given** 별장 2개 있음, **When** 1 입력, **Then** "별장은 최대 2개" 출력
+3. **Given** 잔고 부족, **When** 건설 선택, **Then** "잔고 부족" 출력
+4. **Given** 건설 메뉴, **When** 0 입력, **Then** 건설 안함, 턴 계속
 
 ---
 
-### User Story 6 - 무인도/감옥 처리 (Priority: P2)
+### User Story 5 - 통행료 지불 (Priority: P1)
 
-플레이어가 무인도에 갇혔을 때 더블 탈출, 비용 지불 탈출, 또는 대기를 선택할 수 있다. 3턴 대기 후 자동 탈출된다.
+타인 소유 땅 도착 시 통행료가 자동 계산되어 출력되고 지불된다.
 
-**Why this priority**: 게임 진행에 변화를 주는 특수 칸이나, 핵심 이동 로직 후 구현 가능.
-
-**Independent Test**: 무인도 도착 시 탈출 옵션이 표시되고, 선택에 따라 올바르게 처리됨.
+**Independent Test**: 타인 땅(별장2+빌딩) 도착 → 합산 통행료 출력 → 자동 지불 메시지
 
 **Acceptance Scenarios**:
 
-1. **Given** 무인도에 갇힌 상태(턴 시작), **When** 더블 굴림 성공 선택, **Then** 즉시 탈출하여 일반 턴 진행
-2. **Given** 무인도에 갇힌 상태, **When** 비용 지불 탈출 선택, **Then** 탈출 비용 차감 후 일반 턴 진행
-3. **Given** 무인도에서 3턴 대기 완료, **When** 다음 턴 시작, **Then** 자동 탈출 및 일반 이동
+1. **Given** 타인 땅 도착, **When** 통행료 계산, **Then** 상세 통행료 내역 출력
+2. **Given** 독점 상태, **When** 통행료 계산, **Then** "독점 2배" 표시
+3. **Given** 잔고 부족, **When** 통행료 발생, **Then** 파산 처리 메뉴 진입
 
 ---
 
-### User Story 7 - 파산 처리 (Priority: P2)
+### User Story 6 - 파산 처리 (Priority: P1)
 
-플레이어가 지불 능력을 상실했을 때 파산이 선언되고, 자산이 채권자 또는 은행에 귀속된다.
+잔고 부족 시 매각 메뉴에서 번호 입력으로 자산을 매각하거나 파산을 선언한다.
 
-**Why this priority**: 게임 종료 조건과 연결된 중요 기능이나, 기본 거래 후 구현.
-
-**Independent Test**: 지불 불가 상태에서 파산 선언 시 모든 자산이 올바르게 이전됨.
+**Independent Test**: 잔고 부족 → 매각 메뉴 출력 → 번호 입력 → 매각 완료 또는 파산 메시지
 
 **Acceptance Scenarios**:
 
-1. **Given** 통행료 지불 불가(담보/매각 후에도 부족), **When** 파산 선언, **Then** 모든 자산이 채권자에게 승계
-2. **Given** 세금 등 은행 지불 불가, **When** 파산 선언, **Then** 모든 자산이 "소유주 없음" 상태로 초기화
-3. **Given** 파산 발생 후, **When** 1명만 남음, **Then** 해당 플레이어 승리 및 게임 종료
+1. **Given** 잔고 부족, **When** 건물 매각 선택, **Then** "건물 매각, ₩X 환급" 출력
+2. **Given** 건물 없음, **When** 땅 매각 선택, **Then** "땅 매각 (50%), ₩X 환급" 출력
+3. **Given** 모든 자산 매각 후 부족, **When** 파산 선택, **Then** "파산! 게임에서 제외" 출력
 
 ---
 
-### User Story 8 - 턴 관리 및 연결 복원 (Priority: P3)
+### User Story 7 - 턴 관리 및 게임 종료 (Priority: P1)
 
-플레이어가 모든 행동을 완료한 후 명시적으로 턴을 종료하고, 네트워크 연결 끊김 시 게임이 일시 정지된다.
+턴 종료 시 다음 플레이어로 전환되고, 1명만 남으면 게임이 종료된다.
 
-**Why this priority**: 게임 흐름 제어 및 안정성 기능으로, 핵심 기능 후 폴리싱 단계.
-
-**Independent Test**: 턴 종료 버튼 클릭 시 다음 플레이어에게 권한이 이동하고, 연결 끊김 시 모든 플레이어에게 일시 정지 알림.
+**Independent Test**: 턴 종료 → 다음 플레이어 정보 출력 → 1명 남으면 승리 메시지
 
 **Acceptance Scenarios**:
 
-1. **Given** 모든 행동 완료 상태, **When** "턴 종료" 클릭, **Then** 다음 순서 플레이어에게 턴 권한 이동
-2. **Given** 플레이어 연결 끊김, **When** 3분 경과, **Then** 해당 플레이어 이탈 처리 및 자동 파산(은행 귀속)
-3. **Given** 연결 끊김 후, **When** 3분 내 재연결, **Then** 게임 상태 복구 및 정상 진행
+1. **Given** 도착 이벤트 완료, **When** Enter, **Then** "다음: [플레이어명]의 차례" 출력
+2. **Given** 더블로 추가 턴, **When** 턴 처리 완료, **Then** 같은 플레이어 다시 표시
+3. **Given** 생존자 1명, **When** 게임 종료 판정, **Then** "🎉 게임 종료! 승자: [이름]" 출력
 
 ---
-
-### Edge Cases
-
-- 동시에 같은 방 코드로 5명 이상 입장 시도 시 4명까지만 허용하고 이후 거부
-- 우주여행(특수 칸) 도착 시 40칸 중 원하는 칸으로 이동 가능 (QR 스캔 검증 필수)
-- 동일 턴에 여러 거래(구매+건설) 시 순차적 처리
 
 ## Requirements _(mandatory)_
 
 ### Functional Requirements
 
-- **FR-001**: 시스템은 고유한 방 코드를 생성하여 최대 4명의 플레이어가 입장할 수 있어야 한다
-- **FR-002**: 시스템은 입장 순서대로 4가지 색상(빨강, 파랑, 노랑, 흰색) 중 하나를 자동 배정해야 한다
-- **FR-003**: 시스템은 게임 시작 시 플레이어 순서를 랜덤으로 결정해야 한다
-- **FR-004**: 시스템은 1~12 범위의 주사위 결과(두 주사위 합)를 입력받아야 한다
-- **FR-005**: 시스템은 QR 스캔을 통해 플레이어 위치를 검증해야 한다
-- **FR-006**: 시스템은 잘못된 QR 스캔 시 명확한 에러 메시지를 표시해야 한다
-- **FR-007**: 시스템은 씨앗사 부루마블 클래식(세계여행) 보드판의 40개 칸 데이터를 관리해야 한다
-- **FR-008**: 시스템은 각 칸의 가격, 임대료(건물 수준별)를 정확히 계산해야 한다
-- **FR-009**: 시스템은 27종 황금열쇠 카드를 무작위로 뽑아 효과를 적용해야 한다
-- **FR-010**: 시스템은 강제 이동 시 목적지 QR 스캔이 완료될 때까지 턴 진행을 잠금해야 한다
-- **FR-011**: 시스템은 플레이어 간 파산 시 모든 자산(현금, 땅, 건물)을 채권자에게 승계해야 한다
-- **FR-012**: 시스템은 은행 파산 시 모든 자산을 "소유주 없음" 상태로 초기화해야 한다
-- **FR-013**: 시스템은 턴 종료 버튼을 통해서만 다음 플레이어에게 권한을 이동해야 한다
-- **FR-014**: 시스템은 네트워크 연결 끊김 시 모든 클라이언트에 일시 정지를 알려야 한다
-- **FR-015**: 시스템은 3분(설정 가능) 내 미복귀 시 해당 플레이어를 이탈 처리해야 한다
-- **FR-016**: 시스템은 담보 설정 시 땅 구매가의 50%를 즉시 지급해야 한다
-- **FR-017**: 시스템은 담보 설정 시 건물이 있으면 건물 가격의 50%를 추가 지급해야 한다
-- **FR-018**: 시스템은 담보 해제 시 담보 금액 + 10% 이자를 차감해야 한다
-- **FR-019**: 시스템은 담보 상태의 땅에서는 통행료를 징수하지 않아야 한다
-- **FR-020**: 시스템은 우주여행 칸 이용 시 이용료(20만원)를 차감하고 40칸 중 원하는 위치로 이동시켜야 한다
-- **FR-021**: 시스템은 사회복지기금 기부 칸 도착 시 기부금(15만원)을 차감하고 적립금(fundPool)에 누적해야 한다
-- **FR-022**: 시스템은 사회복지기금 접수(수령처) 도착 시 적립금 전액을 해당 플레이어에게 지급해야 한다
-- **FR-023**: 시스템은 탈것(콩코드, 퀸엘리자베스, 컬럼비아호) 소유 시 별도 통행료 규칙을 적용해야 한다
+- **FR-001**: 시스템은 2~4명의 플레이어 수를 터미널 입력으로 받아 게임을 초기화해야 한다
+- **FR-002**: 시스템은 플레이어별 이름을 터미널 입력으로 설정해야 한다
+- **FR-003**: 시스템은 게임 시작 시 플레이어 순서를 랜덤으로 결정하고 출력해야 한다
+- **FR-004**: 시스템은 각 플레이어에게 초기 자금 200만원을 지급해야 한다
+- **FR-005**: 시스템은 Enter 입력 시 1~6 범위의 주사위 2개를 자동으로 굴려 출력해야 한다
+- **FR-006**: 시스템은 주사위 합계만큼 플레이어를 이동시키고 새 위치를 출력해야 한다
+- **FR-007**: 시스템은 출발점 통과 시 월급 20만원을 지급하고 메시지를 출력해야 한다
+- **FR-008**: 시스템은 더블 발생 시 "더블! 추가 턴" 메시지를 출력해야 한다
+- **FR-009**: 시스템은 빈 땅 도착 시 Y/N 입력으로 구매/패스를 선택하게 해야 한다
+- **FR-010**: 시스템은 건물 건설을 메뉴 번호 입력으로 처리해야 한다
+- **FR-011**: 시스템은 통행료를 합산 방식으로 계산하고 상세 내역을 출력해야 한다
+- **FR-012**: 시스템은 독점 시 통행료 2배를 적용하고 표시해야 한다
+- **FR-013**: 시스템은 잔고 부족 시 매각 메뉴를 번호 선택으로 제공해야 한다
+- **FR-014**: 시스템은 파산 시 게임에서 제외하고 메시지를 출력해야 한다
+- **FR-015**: 시스템은 턴 종료 시 다음 플레이어 정보를 출력해야 한다
+- **FR-016**: 시스템은 생존자 1명 시 게임 종료 및 순위를 출력해야 한다
+- **FR-017**: 시스템은 40개 칸의 보드판 데이터를 내부적으로 관리해야 한다
 
 ### Key Entities
 
-- **GameRoom**: 게임방 정보 (방 코드, 상태, 생성 시간, 호스트)
-- **Player**: 플레이어 정보 (닉네임, 색상, 현재 위치, 현금, 소유 자산, 연결 상태)
-- **BoardTile**: 보드판 칸 정보 (위치, 이름, 종류, 가격, 임대료 테이블, 소유자, 건물 수준)
-- **GoldenKeyCard**: 황금열쇠 카드 (ID, 내용, 효과 종류, 금액/목적지)
-- **GameState**: 게임 상태 (현재 턴, 턴 순서, 게임 진행 상태, 일시 정지 여부)
-- **Transaction**: 거래 기록 (시간, 발신자, 수신자, 금액, 사유)
+- **Game**: 게임 상태 (플레이어 목록, 현재 턴, 게임 상태)
+- **Player**: 플레이어 정보 (이름, 현재 위치, 현금, 소유 땅 목록, 파산 여부)
+- **BoardTile**: 보드판 칸 정보 (인덱스, 이름, 가격, 통행료 테이블, 소유자, 건물 현황)
+- **Building**: 건물 정보 (별장 수, 빌딩 유무, 호텔 유무)
+
+---
 
 ## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
-- **SC-001**: 4명의 플레이어가 30초 이내에 방에 입장하고 게임을 시작할 수 있다
-- **SC-002**: 주사위 입력부터 QR 스캔 완료까지 전체 턴 처리가 10초 이내에 완료된다
-- **SC-003**: 1시간 게임 세션 동안 동기화 오류 없이 모든 플레이어 자산 상태가 일치한다
-- **SC-004**: 잘못된 QR 스캔 시 100% 확률로 에러 메시지가 표시되고 진행이 차단된다
-- **SC-005**: 네트워크 재연결 시 5초 이내에 게임 상태가 복구된다
-- **SC-006**: 기존 아날로그 게임 대비 전체 게임 진행 속도가 30% 이상 향상된다
-- **SC-007**: 파산 발생 시 자산 이전이 3초 이내에 완료된다
-- **SC-008**: 황금열쇠 27종 카드가 균등한 확률로 분포된다
+- **SC-001**: 터미널에서 게임 시작부터 종료까지 완전한 플로우 실행 가능
+- **SC-002**: 주사위 굴림부터 이동 완료까지 1초 이내에 출력
+- **SC-003**: 통행료 계산이 건물 조합에 따라 정확히 합산됨
+- **SC-004**: 파산 처리 후 해당 플레이어가 턴에서 완전히 제외됨
+- **SC-005**: 1시간 게임 세션 동안 모든 플레이어 자산이 정확히 추적됨
+
+---
 
 ## Assumptions
 
-- 모든 플레이어는 QR 스캔이 가능한 스마트폰을 소유하고 있다
-- 실물 보드판에는 각 칸에 고유한 QR 코드가 부착되어 있다
-- 플레이어들은 같은 물리적 공간에서 게임을 진행한다
-- 실물 주사위 결과는 플레이어가 정직하게 입력한다 (Honor System)
-- 인터넷 연결이 안정적으로 유지된다 (간헐적 끊김은 복구 가능)
-
-## Additional Specifications Required
-
-### 1. Data Model Specification
-
-다음 엔티티들의 상세 필드, 타입, 관계를 정의해주세요.
-
-**Required Entities**:
-
-| Entity        | Required Fields                                                                                                                                                 |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GameRoom      | id, roomCode, status (waiting/playing/finished), hostPlayerId, players[], currentTurnIndex, turnOrder[], createdAt                                              |
-| Player        | id, name, color (red/blue/yellow/green), position (0-31), money, ownedTileIds[], isConnected, isBankrupt, islandTurnsLeft                                       |
-| BoardTile     | id, index (0-31), name, type (property/goldenKey/special/start), colorGroup?, price?, rentLevels[]?, ownerId?, buildingLevel (0-3), isMortgaged, mortgageValue? |
-| GoldenKeyCard | id, message, effectType (move/receive/pay/toIsland/repair), value?, destinationIndex?                                                                           |
-| Transaction   | id, timestamp, fromPlayerId?, toPlayerId?, amount, reason (rent/purchase/build/tax/goldenKey/salary/mortgage)                                                   |
-
-**Relationships**:
-
-- GameRoom 1:N Player
-- GameRoom 1:N BoardTile (게임별 상태)
-- Player 1:N BoardTile (소유권)
-- Player 1:N Transaction
-
-**Output Format**: TypeScript interface 형식으로 작성
-
----
-
-### 2. WebSocket Event Specification
-
-서버-클라이언트 간 실시간 통신 이벤트를 정의해주세요.
-
-**Client → Server Events**:
-
-| Event                | Payload                                           | Description           |
-| -------------------- | ------------------------------------------------- | --------------------- |
-| `create-room`        | { playerName }                                    | 새 방 생성            |
-| `join-room`          | { roomCode, playerName }                          | 방 입장               |
-| `start-game`         | { roomId }                                        | 게임 시작 (호스트만)  |
-| `roll-dice`          | { roomId, playerId, diceResult: 1-12 }            | 주사위 결과 입력      |
-| `scan-qr`            | { roomId, playerId, tileIndex }                   | QR 스캔으로 위치 확인 |
-| `buy-property`       | { roomId, playerId, tileIndex }                   | 땅 구매               |
-| `build`              | { roomId, playerId, tileIndex, buildingLevel }    | 건물 건설             |
-| `set-mortgage`       | { roomId, playerId, tileIndex }                   | 담보 설정             |
-| `release-mortgage`   | { roomId, playerId, tileIndex }                   | 담보 해제             |
-| `pay-rent`           | { roomId, payerId, ownerId, amount }              | 통행료 지불           |
-| `island-action`      | { roomId, playerId, action: 'roll'/'pay'/'wait' } | 무인도 탈출 시도      |
-| `end-turn`           | { roomId, playerId }                              | 턴 종료               |
-| `declare-bankruptcy` | { roomId, playerId, creditorId? }                 | 파산 선언             |
-
-**Server → Client Events**:
-
-| Event               | Payload                               | Description      |
-| ------------------- | ------------------------------------- | ---------------- |
-| `room-created`      | { roomId, roomCode }                  | 방 생성 완료     |
-| `player-joined`     | { player, players[] }                 | 플레이어 입장    |
-| `game-started`      | { turnOrder[], currentTurnPlayerId }  | 게임 시작        |
-| `state-updated`     | { gameState: GameRoom }               | 전체 상태 동기화 |
-| `turn-changed`      | { previousPlayerId, currentPlayerId } | 턴 변경          |
-| `golden-key-drawn`  | { card: GoldenKeyCard }               | 황금열쇠 뽑음    |
-| `player-bankrupted` | { playerId, creditorId?, assets }     | 파산 처리        |
-| `game-paused`       | { reason, disconnectedPlayerId }      | 게임 일시정지    |
-| `game-resumed`      | { }                                   | 게임 재개        |
-| `game-ended`        | { winnerId, rankings[] }              | 게임 종료        |
-| `error`             | { code, message }                     | 에러 발생        |
-
-**Output Format**: TypeScript type 정의 포함
-
----
-
-### 3. Board Data (32 Tiles)
-
-씨앗사 부루마블 클래식(세계여행) 보드판 32칸 데이터를 정의해주세요.
-
-**Tile Types**:
-
-- `start`: 출발 (1개)
-- `property`: 부동산 (22개) - colorGroup 포함
-- `goldenKey`: 황금열쇠 (4개)
-- `island`: 무인도 (1개)
-- `travel`: 우주여행 (1개)
-- `fund`: 사회복지기금 (1개)
-- `tax`: 세금 (2개)
-
-**Property Color Groups** (독점 판정용):
-
-- 각 그룹당 2~3개 도시
-- 같은 색상 그룹 전체 소유 시 통행료 2배
-
-**Required Data per Property Tile**:
-
-```typescript
-{
-  index: number,           // 0-31
-  name: string,            // "타이베이", "서울" 등
-  type: "property",
-  colorGroup: string,      // "brown", "sky", "pink", "orange", "red", "yellow", "green", "blue"
-  price: number,           // 구매가
-  rentLevels: [number, number, number, number],  // [땅, 빌라, 건물, 호텔]
-  mortgageValue: number    // 담보가 (price * 0.5)
-}
-```
-
-**Output Format**: JSON 배열 또는 TypeScript const 객체
-
----
-
-### 4. Golden Key Cards (27 Types)
-
-황금열쇠 카드 27종의 상세 데이터를 정의해주세요.
-
-**Effect Types**:
-
-| Type             | Description               | Required Fields                 |
-| ---------------- | ------------------------- | ------------------------------- |
-| `move`           | 특정 칸으로 이동          | destinationIndex                |
-| `receive`        | 은행에서 돈 받기          | value                           |
-| `pay`            | 은행에 돈 지불            | value                           |
-| `toIsland`       | 무인도로 이동             | -                               |
-| `repair`         | 건물 수리비 (건물당 비용) | villaFee, buildingFee, hotelFee |
-| `collectFromAll` | 모든 플레이어에게 받기    | valuePerPlayer                  |
-| `payToAll`       | 모든 플레이어에게 지불    | valuePerPlayer                  |
-
-**Sample Cards** (참고용):
-
-- "출발점으로 이동하세요" (move, index: 0)
-- "은행에서 20만원을 받으세요" (receive, 200000)
-- "병원비 10만원을 지불하세요" (pay, 100000)
-- "무인도로 이동하세요" (toIsland)
-- "건물 수리비: 빌라 3만, 건물 7만, 호텔 15만" (repair)
-
-**Output Format**: JSON 배열 with TypeScript type
-
----
-
-### 5. Game State Machine
-
-게임 상태 전이 다이어그램을 정의해주세요.
-
-**Game-Level States**:
-
-```
-waiting → playing → finished
-              ↓↑
-           paused
-```
-
-**Turn-Level States**:
-
-```
-idle → dice_input → moving → landed → action_phase → turn_end
-                                ↓
-                         [special handling]
-                         - property_decision (구매/패스)
-                         - rent_payment (통행료)
-                         - golden_key (카드 효과)
-                         - island (무인도 처리)
-```
-
-**Required Definitions**:
-
-- 각 상태에서 가능한 액션 목록
-- 상태 전이 조건
-- 에러 상태 처리
-
-**Output Format**: Mermaid 다이어그램 + TypeScript enum/type
-
----
-
-### 6. Error Codes
-
-에러 코드와 메시지를 정의해주세요.
-
-**Categories**:
-
-- `ROOM_*`: 방 관련 에러
-- `PLAYER_*`: 플레이어 관련 에러
-- `GAME_*`: 게임 진행 관련 에러
-- `NETWORK_*`: 네트워크 관련 에러
-
-**Required Errors**:
-
-| Code               | Message                | When                  |
-| ------------------ | ---------------------- | --------------------- |
-| ROOM_NOT_FOUND     | 존재하지 않는 방입니다 | 잘못된 roomCode       |
-| ROOM_FULL          | 방이 가득 찼습니다     | 5번째 입장 시도       |
-| NOT_YOUR_TURN      | 당신의 턴이 아닙니다   | 턴 아닌 플레이어 액션 |
-| INVALID_QR         | 잘못된 위치입니다      | QR 스캔 불일치        |
-| INSUFFICIENT_FUNDS | 잔고가 부족합니다      | 금액 부족             |
-| ALREADY_OWNED      | 이미 소유된 땅입니다   | 타인 땅 구매 시도     |
-| CANNOT_BUILD       | 건설할 수 없습니다     | 건설 조건 불충족      |
-
-**Output Format**: TypeScript enum + 메시지 매핑 객체
+- 한 명의 사용자가 터미널에서 모든 플레이어를 번갈아 컨트롤한다 (테스트용)
+- Node.js 환경에서 실행 (readline 모듈 사용)
+- 모든 입력은 터미널 stdin, 출력은 stdout
+- 게임 상태는 메모리에만 유지 (영구 저장 없음)
+- 건물 매각 시 100% 환급, 땅 매각 시 50% 환급

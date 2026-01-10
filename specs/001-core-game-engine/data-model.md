@@ -1,465 +1,222 @@
-# Data Model: 부루마블 핵심 게임 엔진
+# Data Model: 부루마블 MVP 핵심 엔진 (테스트 모드)
 
-**Feature**: 001-core-game-engine  
-**Date**: 2026-01-04  
-**Status**: Complete
+**Feature**: 001-core-game-engine
+**Date**: 2026-01-10
+**Source**: spec.md + contracts/
 
-## Overview
+## Entities
 
-부루마블 핵심 게임 엔진의 데이터 모델을 TypeScript 인터페이스로 정의한다.
+### Game
 
----
-
-## Entity Relationship Diagram
-
-```mermaid
-erDiagram
-    GameRoom ||--o{ Player : contains
-    GameRoom ||--o{ BoardTile : has
-    GameRoom ||--o{ Transaction : logs
-    Player ||--o{ BoardTile : owns
-    Player ||--o{ Transaction : participates
-
-    GameRoom {
-        string id PK
-        string roomCode UK
-        GameStatus status
-        string hostPlayerId FK
-        number currentTurnIndex
-        string[] turnOrder
-        number lastDiceResult
-        Date createdAt
-    }
-
-    Player {
-        string id PK
-        string name
-        PlayerColor color
-        number position
-        number money
-        string[] ownedTileIds
-        boolean isConnected
-        boolean isBankrupt
-        number islandTurnsLeft
-    }
-
-    BoardTile {
-        string id PK
-        number index
-        string name
-        TileType type
-        string colorGroup
-        number price
-        number[] rentLevels
-        string ownerId FK
-        number buildingLevel
-        boolean isMortgaged
-        number mortgageValue
-    }
-
-    GoldenKeyCard {
-        string id PK
-        string message
-        CardEffectType effectType
-        number value
-        number destinationIndex
-        number villaFee
-        number buildingFee
-        number hotelFee
-        number valuePerPlayer
-    }
-
-    Transaction {
-        string id PK
-        Date timestamp
-        string fromPlayerId FK
-        string toPlayerId FK
-        number amount
-        TransactionReason reason
-    }
-```
-
----
-
-## TypeScript Interfaces
-
-### Enums
+게임 전체 상태를 관리하는 최상위 엔티티
 
 ```typescript
-// server/src/models/enums.ts
-
-export enum GameStatus {
-  WAITING = "waiting",
-  PLAYING = "playing",
-  PAUSED = "paused",
-  FINISHED = "finished",
+interface Game {
+  id: string;
+  status: GameStatus; // 'waiting' | 'playing' | 'finished'
+  players: Player[]; // 2~4명
+  currentPlayerIndex: number; // 현재 턴 플레이어 인덱스
+  turnOrder: string[]; // 플레이어 ID 순서 (랜덤 결정)
+  board: BoardTileState[]; // 40칸 상태
+  lastDiceResult?: DiceResult; // 마지막 주사위 결과
+  createdAt: Date;
 }
 
-export enum PlayerColor {
+interface DiceResult {
+  die1: number; // 1~6
+  die2: number; // 1~6
+  total: number; // 2~12
+  isDouble: boolean; // 더블 여부
+}
+
+enum GameStatus {
+  WAITING = "waiting",
+  PLAYING = "playing",
+  FINISHED = "finished",
+}
+```
+
+### Player
+
+플레이어 정보
+
+```typescript
+interface Player {
+  id: string;
+  name: string;
+  color: PlayerColor; // 'red' | 'blue' | 'yellow' | 'green'
+  position: number; // 0~39 (현재 위치)
+  money: number; // 현금 (초기: 2,000,000)
+  ownedTileIds: string[]; // 소유한 땅 ID 목록
+  isBankrupt: boolean; // 파산 여부
+  isSecondHalf: boolean; // 후반전 상태 (출발점 1회 이상 통과 시 true)
+}
+
+enum PlayerColor {
   RED = "red",
   BLUE = "blue",
   YELLOW = "yellow",
-  WHITE = "white", // 원본 규칙: 빨강/파랑/노랑/흰색 비행기 말
-}
-
-export enum BuildingLevel {
-  LAND = 0, // 대지만
-  VILLA = 1, // 별장
-  VILLA2 = 2, // 별장 2개
-  BUILDING = 3, // 빌딩
-  HOTEL = 4, // 호텔
-}
-
-export enum TileType {
-  START = "start", // 출발
-  PROPERTY = "property", // 도시 (부동산)
-  VEHICLE = "vehicle", // 탈것 (콩코드, 퀄엘리자베스, 컴럼비아)
-  GOLDEN_KEY = "goldenKey", // 황금열쇠
-  ISLAND = "island", // 무인도
-  TRAVEL = "travel", // 우주여행
-  FUND_RECEIVE = "fundReceive", // 사회복지기금 접수 (수령처, 코너)
-  FUND_DONATE = "fundDonate", // 사회복지기금 기부 (모금 칸)
-}
-
-export enum CardEffectType {
-  MOVE_TO = "moveTo", // 특정 위치로 이동
-  MOVE_BACK = "moveBack", // 뒤로 N칸 이동
-  WORLD_TOUR = "worldTour", // 세계일주 (한 바퀴)
-  RECEIVE = "receive", // 돈 받기 (상금)
-  PAY = "pay", // 돈 지불 (지출)
-  COLLECT_FROM_ALL = "collectFromAll", // 모든 플레이어에게 받기
-  BUILDING_FEE = "buildingFee", // 건물 유지비/수리비/방범비
-  FORCE_SELL = "forceSell", // 가장 비싼 땅 반값 매각
-  ISLAND_ESCAPE = "islandEscape", // 무인도 탈출권 (보관 가능)
-  TOLL_EXEMPT = "tollExempt", // 통행료 면제권 (보관 가능)
-  TO_ISLAND = "toIsland", // 무인도로 이동
-  SPECIAL = "special", // 특수 효과 (장기자랑 등)
-}
-
-export enum TransactionReason {
-  RENT = "rent", // 통행료
-  PURCHASE = "purchase", // 땅 구매
-  BUILD = "build", // 건물 건설
-  GOLDEN_KEY = "goldenKey", // 황금열쇠 효과
-  SALARY = "salary", // 월급 (출발 통과)
-  MORTGAGE = "mortgage", // 담보 설정
-  MORTGAGE_RELEASE = "mortgageRelease", // 담보 해제
-  BANKRUPTCY = "bankruptcy", // 파산 자산 이전
-  FUND_DONATE = "fundDonate", // 사회복지기금 기부
-  FUND_RECEIVE = "fundReceive", // 사회복지금 수령
-  TRAVEL_FEE = "travelFee", // 우주여행 이용료
-  ISLAND_ESCAPE = "islandEscape", // 무인도 탈출 비용
-  FORCE_SELL = "forceSell", // 강제 매각
-}
-
-export enum TurnPhase {
-  IDLE = "idle",
-  DICE_INPUT = "diceInput",
-  MOVING = "moving",
-  LANDED = "landed",
-  ACTION_PHASE = "actionPhase",
-  TURN_END = "turnEnd",
+  GREEN = "green",
 }
 ```
 
-### Game Room
+### BoardTileState
+
+각 칸의 현재 상태 (소유권, 건물 등)
 
 ```typescript
-// server/src/models/game-room.ts
+interface BoardTileState {
+  id: string; // 'tile-0' ~ 'tile-39'
+  ownerId?: string; // 소유자 플레이어 ID (null이면 미소유)
+  buildings: Building; // 건물 현황
+}
 
-import { Player } from "./player";
-import { BoardTile } from "./board-tile";
-import { Transaction } from "./transaction";
-import { GameStatus, TurnPhase } from "./enums";
-
-export interface GameRoom {
-  /** Unique identifier (UUID) */
-  id: string;
-
-  /** 6-character room code for joining */
-  roomCode: string;
-
-  /** Current game status */
-  status: GameStatus;
-
-  /** ID of the player who created the room */
-  hostPlayerId: string;
-
-  /** All players in the room (max 4) */
-  players: Player[];
-
-  /** Current turn's player index in turnOrder */
-  currentTurnIndex: number;
-
-  /** Player IDs in turn order (randomized at game start) */
-  turnOrder: string[];
-
-  /** Last dice result (1-12) */
-  lastDiceResult: number | null;
-
-  /** Current turn phase */
-  turnPhase: TurnPhase;
-
-  /** Board tiles with game-specific state */
-  tiles: BoardTile[];
-
-  /** Transaction history */
-  transactions: Transaction[];
-
-  /** Room creation timestamp */
-  createdAt: Date;
-
-  /** Disconnected player ID (if paused) */
-  disconnectedPlayerId: string | null;
-
-  /** 사회복지기금 적립금 (모금 칸에서 누적, 수령처에서 전액 지급) */
-  fundPool: number;
+/** 건물 현황 (독립 건설 방식) */
+interface Building {
+  villaCount: 0 | 1 | 2; // 별장 개수 (최대 2개)
+  hasBuilding: boolean; // 빌딩 유무 (최대 1개)
+  hasHotel: boolean; // 호텔 유무 (최대 1개)
 }
 ```
 
-### Player
+### BoardTileData (Static)
+
+보드판 칸의 정적 데이터 (contracts/board-data.ts 참조)
 
 ```typescript
-// server/src/models/player.ts
-
-import { PlayerColor } from "./enums";
-
-export interface Player {
-  /** Unique identifier (UUID) */
+interface BoardTileData {
   id: string;
-
-  /** Display name */
+  index: number; // 0~39
   name: string;
-
-  /** Assigned color (based on join order) */
-  color: PlayerColor;
-
-  /** Current board position (0-39, 40칸 보드판) */
-  position: number;
-
-  /** Current money in won (starts at 2,000,000) */
-  money: number;
-
-  /** IDs of owned tiles */
-  ownedTileIds: string[];
-
-  /** WebSocket connection status */
-  isConnected: boolean;
-
-  /** Bankruptcy status */
-  isBankrupt: boolean;
-
-  /** Remaining turns stuck on island (0 = not on island) */
-  islandTurnsLeft: number;
-
-  /** Socket ID for WebSocket communication */
-  socketId: string;
+  type: TileType;
+  colorGroup?: string; // 독점 판정용 색상 그룹
+  price?: number; // 구매가
+  buildingPrices?: {
+    villa: number;
+    building: number;
+    hotel: number;
+  };
+  rentTable?: RentTable; // 통행료 테이블
+  canBuild: boolean; // 건설 가능 여부
 }
 
-/** Constants */
-export const INITIAL_MONEY = 2_000_000;
-export const MAX_PLAYERS = 4;
-```
-
-### Board Tile
-
-import { TileType, BuildingLevel } from "./enums";
-
-export interface BoardTile {
-/\*_ Unique identifier _/
-id: string;
-
-/\*_ Board position (0-39, 40칸 보드판) _/
-index: number;
-
-/\*_ Display name (city/vehicle) _/
-name: string;
-
-/\*_ Tile type _/
-type: TileType;
-
-/\*_ Color group for monopoly detection (property only) _/
-colorGroup?: string;
-
-/\*_ Purchase price _/
-price?: number;
-
-/\*_ Building prices: [별장, 빌딩, 호텔] (only if canBuild = true) _/
-buildingPrices?: [number, number, number];
-
-/\*_ Rent levels: [대지, 별장, 별장2개, 빌딩, 호텔] (5단계) _/
-rentLevels?: [number, number, number, number, number];
-
-/\*_ Whether buildings can be constructed _/
-canBuild?: boolean;
-
-/\*_ Current owner's player ID (null = unowned) _/
-ownerId: string | null;
-
-/\*_ Building level: 0=land, 1=villa, 2=villa2, 3=building, 4=hotel _/
-buildingLevel: BuildingLevel;
-
-/\*_ Mortgage status _/
-isMortgaged: boolean;
-
-/\*_ Current mortgage value (if mortgaged) _/
-mortgageValue?: number;
+/** 통행료 테이블 (합산 방식용) */
+interface RentTable {
+  land: number; // 대지료
+  villa1: number; // 별장 1개
+  villa2: number; // 별장 2개 (추가분)
+  building: number; // 빌딩
+  hotel: number; // 호텔
 }
 
-/\*_ Constants _/
-export const BOARD_SIZE = 40;
-export const MORTGAGE_RATE = 0.5;
-export const MORTGAGE_INTEREST = 0.1;
-export const MONOPOLY_MULTIPLIER = 2;
-
-````
-
-### Golden Key Card
-
-```typescript
-// server/src/models/golden-key-card.ts
-
-import { CardEffectType } from "./enums";
-
-export interface GoldenKeyCard {
-  /** Unique identifier */
-  id: string;
-
-  /** Display message */
-  message: string;
-
-  /** Effect type */
-  effectType: CardEffectType;
-
-  /** Money amount (receive/pay) */
-  value?: number;
-
-  /** Target tile index (move) */
-  destinationIndex?: number;
-
-  /** Repair costs per building type */
-  villaFee?: number;
-  buildingFee?: number;
-  hotelFee?: number;
-
-  /** Amount per player (collectFromAll/payToAll) */
-  valuePerPlayer?: number;
-}
-
-/** Constants */
-export const GOLDEN_KEY_COUNT = 27;
-````
-
-### Transaction
-
-```typescript
-// server/src/models/transaction.ts
-
-import { TransactionReason } from "./enums";
-
-export interface Transaction {
-  /** Unique identifier (UUID) */
-  id: string;
-
-  /** Transaction timestamp */
-  timestamp: Date;
-
-  /** Source player ID (null = bank) */
-  fromPlayerId: string | null;
-
-  /** Destination player ID (null = bank) */
-  toPlayerId: string | null;
-
-  /** Amount in won */
-  amount: number;
-
-  /** Transaction reason */
-  reason: TransactionReason;
-
-  /** Optional description */
-  description?: string;
+enum TileType {
+  START = "start",
+  PROPERTY = "property",
+  VEHICLE = "vehicle",
+  GOLDEN_KEY = "goldenKey", // MVP에서 미사용
+  ISLAND = "island", // MVP에서 미사용
+  TRAVEL = "travel", // MVP에서 미사용
+  FUND_RECEIVE = "fundReceive", // MVP에서 미사용
+  FUND_DONATE = "fundDonate", // MVP에서 미사용
 }
 ```
 
----
-
-## Validation Rules
-
-### GameRoom
-
-- `roomCode`: 6자리 영숫자, 고유해야 함
-- `players.length`: 1 ≤ n ≤ 4
-- `turnOrder.length` === `players.filter(p => !p.isBankrupt).length`
-- `status === 'playing'` 일 때만 게임 액션 허용
-
-### Player
-
-- `name`: 1~20자
-- `money`: 0 이상 (음수 불가, 음수 시 파산 처리)
-- `position`: 0~31
-- `islandTurnsLeft`: 0~3
-
-### BoardTile
-
-- `buildingLevel`: 0~3
-- `buildingLevel > 0` 이면 `isMortgaged === false`
-- 담보 설정 시 건물은 유지 (담보 해제 전 건설 불가)
-
-### Transaction
-
-- `amount`: 양수
-- `fromPlayerId !== toPlayerId`
-
----
-
-## State Transitions
-
-### Game Status
+## Relationships
 
 ```mermaid
-stateDiagram-v2
-    [*] --> waiting: 방 생성
-    waiting --> playing: 호스트가 게임 시작 (2~4명)
-    playing --> paused: 플레이어 연결 끊김
-    paused --> playing: 재연결
-    paused --> playing: 3분 초과 → 이탈자 파산 처리
-    playing --> finished: 1명만 남음
-    finished --> [*]
+erDiagram
+    Game ||--o{ Player : "has 2-4"
+    Game ||--|{ BoardTileState : "has 40"
+    Player ||--o{ BoardTileState : "owns 0-N"
+    BoardTileState ||--|| Building : "has"
+    BoardTileState }|--|| BoardTileData : "references"
 ```
 
-### Turn Phase
+## Key Calculations
 
-```mermaid
-stateDiagram-v2
-    [*] --> idle: 턴 시작
-    idle --> diceInput: UI 표시
-    diceInput --> moving: 주사위 결과 입력
-    moving --> landed: QR 스캔 완료
-    landed --> actionPhase: 칸 이벤트 처리
+### 1. 통행료 계산 (합산 방식)
 
-    state actionPhase {
-        [*] --> propertyDecision: 빈 땅
-        [*] --> rentPayment: 타인 땅
-        [*] --> goldenKey: 황금열쇠
-        [*] --> islandProcess: 무인도
-        [*] --> buildOption: 본인 땅
+```typescript
+function calculateToll(
+  tileData: BoardTileData,
+  tileState: BoardTileState,
+  isMonopoly: boolean
+): number {
+  if (!tileData.rentTable || !tileState.ownerId) return 0;
+
+  const { buildings } = tileState;
+  const { rentTable } = tileData;
+
+  let toll = rentTable.land;
+  if (buildings.villaCount >= 1) toll += rentTable.villa1;
+  if (buildings.villaCount >= 2) toll += rentTable.villa2;
+  if (buildings.hasBuilding) toll += rentTable.building;
+  if (buildings.hasHotel) toll += rentTable.hotel;
+
+  if (isMonopoly) toll *= 2;
+
+  return toll;
+}
+```
+
+### 2. 독점 판정
+
+```typescript
+function isMonopoly(
+  playerId: string,
+  colorGroup: string,
+  allTileStates: BoardTileState[],
+  allTileData: BoardTileData[]
+): boolean {
+  const tilesInGroup = allTileData.filter((t) => t.colorGroup === colorGroup);
+  return tilesInGroup.every(
+    (t) => allTileStates.find((s) => s.id === t.id)?.ownerId === playerId
+  );
+}
+```
+
+### 3. 총 자산 계산
+
+```typescript
+function calculateNetWorth(
+  player: Player,
+  tileStates: BoardTileState[],
+  tileData: BoardTileData[]
+): number {
+  let worth = player.money;
+
+  for (const tileId of player.ownedTileIds) {
+    const data = tileData.find((t) => t.id === tileId);
+    const state = tileStates.find((t) => t.id === tileId);
+    if (!data || !state) continue;
+
+    // 땅 가치 (50%)
+    worth += (data.price ?? 0) * 0.5;
+
+    // 건물 가치 (100%)
+    if (data.buildingPrices) {
+      worth += state.buildings.villaCount * data.buildingPrices.villa;
+      if (state.buildings.hasBuilding) worth += data.buildingPrices.building;
+      if (state.buildings.hasHotel) worth += data.buildingPrices.hotel;
     }
+  }
 
-    actionPhase --> turnEnd: 모든 액션 완료
-    turnEnd --> [*]: 턴 종료 버튼
+  return worth;
+}
 ```
 
----
-
-## Index File
+## Constants
 
 ```typescript
-// server/src/models/index.ts
-
-export * from "./enums";
-export * from "./game-room";
-export * from "./player";
-export * from "./board-tile";
-export * from "./golden-key-card";
-export * from "./transaction";
+// 게임 상수 (spec.md 참조)
+const GAME_CONSTANTS = {
+  INITIAL_MONEY: 2_000_000, // 초기 자금
+  MAX_PLAYERS: 4, // 최대 플레이어
+  MIN_PLAYERS: 2, // 최소 플레이어
+  BOARD_TILES: 40, // 총 칸 수
+  SALARY: 200_000, // 월급
+  MONOPOLY_MULTIPLIER: 2, // 독점 배수
+  LAND_SELL_RATE: 0.5, // 땅 매각 시 환급률
+  BUILDING_SELL_RATE: 1.0, // 건물 매각 시 환급률
+} as const;
 ```

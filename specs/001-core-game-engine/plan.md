@@ -1,257 +1,187 @@
-# Implementation Plan: 부루마블 핵심 게임 엔진
+# Implementation Plan: 부루마블 MVP 핵심 엔진 (CLI 테스트 모드)
 
-**Branch**: `001-core-game-engine` | **Date**: 2026-01-04 | **Spec**: [spec.md](file:///E:/github_coop/blue-marble/specs/001-core-game-engine/spec.md)  
+**Branch**: `001-core-game-engine` | **Date**: 2026-01-10 | **Spec**: [spec.md](file:///e:/github_coop/blue-marble/specs/001-core-game-engine/spec.md)
 **Input**: Feature specification from `/specs/001-core-game-engine/spec.md`
 
 ## Summary
 
-부루마블(블루마블) 보드게임의 핵심 게임 엔진을 구현한다. **NestJS 10 서버**와 **React Native (Expo SDK 50) 클라이언트**를 사용하여 실시간 멀티플레이어 게임을 구현한다. 핵심 가치인 **Bankless(현금 없음)**, **Math-free(계산 없음)**, **Sync(실시간 동기화)**를 만족하며, 서버가 유일한 게임 상태 관리 주체(SSOT)로 동작한다.
+CLI 기반 부루마블 MVP 구현. 터미널에서 텍스트로 모든 게임을 제어하며, 한 명의 사용자가 2~4명의 플레이어를 번갈아 컨트롤하여 게임 로직을 검증.
+
+**핵심 기능**: 터미널 게임 설정, 자동 주사위, 땅 구매(Y/N), 건물 건설(메뉴), 통행료 합산, 파산 처리, 게임 종료
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x (Node.js 20 LTS)  
-**Primary Dependencies**: NestJS 10, Socket.IO, React Native (Expo SDK 50), Zustand  
-**Storage**: In-Memory (Node.js 힙 메모리) - MVP 단계, 외부 DB 없음  
-**Testing**: Jest (서버), React Native Testing Library (클라이언트)  
-**Target Platform**: Server: Linux/Docker, Client: iOS 15+, Android 10+  
-**Project Type**: Mobile + API  
-**Performance Goals**: QR 스캔 후 응답 < 500ms, 실시간 반영 0.2~0.5초  
-**Constraints**: 최대 4명 동시 접속, 세션 종료 시 데이터 소멸, MVP 단계  
-**Scale/Scope**: 4명 동시 플레이어, 40개 보드 칸, 27종 황금열쇠 카드
+**Language/Version**: TypeScript 5.x + Node.js 18+  
+**Primary Dependencies**: readline (내장), ts-node (개발)  
+**Storage**: In-Memory (변수)  
+**Testing**: Vitest  
+**Target Platform**: Node.js CLI (터미널)  
+**Project Type**: Single CLI Application  
+**Performance Goals**: 응답 1초 이내  
+**Constraints**: 단일 프로세스, 네트워크 없음
 
 ## Constitution Check
 
-_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
-
-| Principle                  | Status  | Implementation                                                   |
-| -------------------------- | ------- | ---------------------------------------------------------------- |
-| I. 서버 중심 진실의 원천   | ✅ PASS | 서버 In-Memory GameState가 SSOT, 클라이언트는 렌더링만           |
-| II. QR 기반 엄격 검증      | ✅ PASS | `scan-qr` 이벤트로 서버 검증 후 위치 업데이트                    |
-| III. 양심 기반 신고 시스템 | ✅ PASS | `roll-dice`로 사용자 입력 신뢰, 무인도 `island-action` 버튼 제공 |
-| IV. 즉시 파산 처리         | ✅ PASS | 파산 시 자산 즉시 이전, Unit Test 필수                           |
-| V. 턴 종료 명시적 선언     | ✅ PASS | `end-turn` 이벤트로 명시적 턴 종료                               |
-| VI. 연결 복원성            | ✅ PASS | 연결 끊김 시 Pause, 3분 후 이탈 처리                             |
-| VII. KISS                  | ✅ PASS | In-Memory 저장소로 단순화, 외부 DB 없음                          |
-| VIII. YAGNI                | ✅ PASS | MVP 범위 10개 기능만 구현                                        |
-| IX. DRY                    | ✅ PASS | Game Constants 및 공통 타입 정의                                 |
-| X. SOLID                   | ✅ PASS | 서비스별 단일 책임 분리                                          |
-
-**Quality Gates**:
-
-- [x] 파산 로직 Unit Test 계획됨
-- [x] QR 검증 Integration Test 계획됨
-- [x] 연결 끊김 시나리오 Test 계획됨
+| Principle                | Status  | Notes                               |
+| ------------------------ | ------- | ----------------------------------- |
+| I. 서버 중심 진실의 원천 | ⚠️ 변형 | 단일 프로세스, 메모리가 진실의 원천 |
+| II~III, VI               | ⛔ 제외 | CLI 테스트 모드                     |
+| IV~V                     | ✅ 준수 | 파산/턴 종료 로직                   |
+| VII~X                    | ✅ 준수 | KISS, YAGNI, DRY, SOLID             |
 
 ## Project Structure
 
-### Documentation (this feature)
+### Documentation
 
 ```text
 specs/001-core-game-engine/
-├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output
-│   └── websocket-events.ts
-└── tasks.md             # Phase 2 output (/speckit.tasks)
+├── spec.md              # CLI 기능 명세
+├── plan.md              # 이 파일
+├── research.md          # 기술 리서치
+├── data-model.md        # 데이터 모델
+├── quickstart.md        # CLI 실행 가이드
+├── contracts/           # 타입 정의 (참조용)
+└── tasks.md             # 구현 태스크
 ```
 
-### Source Code (repository root)
+### Source Code
 
 ```text
-# Mobile + API Structure
+src/
+├── cli/                     # CLI 입출력
+│   ├── prompts.ts           # readline 프롬프트
+│   ├── display.ts           # 터미널 출력 포매터
+│   └── gameLoop.ts          # 메인 게임 루프
+├── services/                # 비즈니스 로직
+│   ├── gameService.ts       # 게임 흐름
+│   ├── diceService.ts       # 주사위
+│   ├── propertyService.ts   # 땅 구매
+│   ├── buildingService.ts   # 건물 건설
+│   ├── tollCalculator.ts    # 통행료 계산
+│   └── bankruptcyService.ts # 파산 처리
+├── data/                    # 정적 데이터
+│   ├── boardData.ts         # 40칸 보드판
+│   └── constants.ts         # 게임 상수
+├── types/                   # TypeScript 타입
+│   └── index.ts
+└── index.ts                 # 엔트리 포인트
 
-server/
-├── src/
-│   ├── main.ts                    # NestJS 부트스트랩
-│   ├── app.module.ts              # 루트 모듈
-│   ├── game/
-│   │   ├── game.module.ts
-│   │   ├── game.gateway.ts        # WebSocket Gateway
-│   │   ├── game.service.ts        # 게임 로직
-│   │   └── game.controller.ts     # REST API (방 생성)
-│   ├── models/
-│   │   ├── game-room.ts
-│   │   ├── player.ts
-│   │   ├── board-tile.ts
-│   │   ├── golden-key-card.ts
-│   │   └── transaction.ts
-│   ├── constants/
-│   │   ├── board-data.ts          # 32칸 보드 데이터
-│   │   └── golden-key-cards.ts    # 27종 카드 데이터
-│   └── utils/
-│       └── game-logic.ts          # 통행료 계산, 담보 등
-└── tests/
-    ├── unit/
-    │   ├── game.service.spec.ts
-    │   └── bankruptcy.spec.ts     # 파산 로직 필수 테스트
-    └── integration/
-        └── game.gateway.spec.ts   # WebSocket 통합 테스트
-
-client/
-├── app/                           # Expo Router
-│   ├── (tabs)/
-│   │   ├── home.tsx
-│   │   └── game.tsx
-│   ├── room/
-│   │   ├── create.tsx
-│   │   └── [code].tsx
-│   └── _layout.tsx
-├── components/
-│   ├── BoardView.tsx
-│   ├── PlayerCard.tsx
-│   ├── DiceInput.tsx
-│   ├── QRScanner.tsx
-│   └── GoldenKeyModal.tsx
-├── stores/
-│   └── gameStore.ts               # Zustand 스토어
-├── services/
-│   └── socketService.ts           # Socket.IO 클라이언트
-└── constants/
-    └── gameConstants.ts
+tests/
+└── unit/                    # 단위 테스트
+    ├── tollCalculator.test.ts
+    ├── bankruptcyService.test.ts
+    └── gameService.test.ts
 ```
 
-**Structure Decision**: Mobile + API 구조 선택. NestJS 서버와 Expo 클라이언트를 분리하여 실시간 멀티플레이어 게임 지원.
-
-## Complexity Tracking
-
-> **No violations requiring justification**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-| --------- | ---------- | ------------------------------------ |
-| N/A       | N/A        | N/A                                  |
+---
 
 ## Proposed Changes
 
-### Phase 1: Server Foundation
+### Component: Core Types
 
-#### [NEW] [server/](file:///E:/github_coop/blue-marble/server/)
+#### [NEW] [types/index.ts](file:///e:/github_coop/blue-marble/src/types/index.ts)
 
-- NestJS 10 프로젝트 초기화
-- Game 모듈 구조 설정
-
-#### [NEW] [game.gateway.ts](file:///E:/github_coop/blue-marble/server/src/game/game.gateway.ts)
-
-- WebSocket Gateway 구현
-- 13개 Client→Server 이벤트 핸들러
-- 11개 Server→Client 이벤트 브로드캐스트
-
-#### [NEW] [game.service.ts](file:///E:/github_coop/blue-marble/server/src/game/game.service.ts)
-
-- 게임 로직 핵심 서비스
-- In-Memory 상태 관리 (Map<roomId, GameRoom>)
-- 통행료/담보 계산, 파산 처리
+- Game, Player, BoardTileState, Building 인터페이스
+- GameStatus, TileType enum
+- data-model.md 기반
 
 ---
 
-### Phase 2: Data Models & Constants
+### Component: Data
 
-#### [NEW] [models/](file:///E:/github_coop/blue-marble/server/src/models/)
+#### [NEW] [data/boardData.ts](file:///e:/github_coop/blue-marble/src/data/boardData.ts)
 
-- GameRoom, Player, BoardTile, GoldenKeyCard, Transaction 인터페이스
+- contracts/board-data.ts 기반 40칸 데이터
 
-#### [NEW] [board-data.ts](file:///E:/github_coop/blue-marble/server/src/constants/board-data.ts)
+#### [NEW] [data/constants.ts](file:///e:/github_coop/blue-marble/src/data/constants.ts)
 
-- 씨앗사 부루마블 클래식 32칸 데이터
-- 가격, 임대료 테이블, 색상 그룹
-
-#### [NEW] [golden-key-cards.ts](file:///E:/github_coop/blue-marble/server/src/constants/golden-key-cards.ts)
-
-- 27종 황금열쇠 카드 데이터
+- GAME_CONSTANTS (INITIAL_MONEY, SALARY 등)
 
 ---
 
-### Phase 3: Client Foundation
+### Component: Services
 
-#### [NEW] [client/](file:///E:/github_coop/blue-marble/client/)
+#### [NEW] [services/diceService.ts](file:///e:/github_coop/blue-marble/src/services/diceService.ts)
 
-- Expo SDK 50 프로젝트 초기화
-- Expo Router 설정
+- rollDice(): 주사위 2개 굴림
 
-#### [NEW] [socketService.ts](file:///E:/github_coop/blue-marble/client/services/socketService.ts)
+#### [NEW] [services/gameService.ts](file:///e:/github_coop/blue-marble/src/services/gameService.ts)
 
-- Socket.IO 클라이언트 연결
-- 이벤트 송수신 래퍼
+- initializeGame(), movePlayer(), endTurn(), checkGameEnd()
 
-#### [NEW] [gameStore.ts](file:///E:/github_coop/blue-marble/client/stores/gameStore.ts)
+#### [NEW] [services/propertyService.ts](file:///e:/github_coop/blue-marble/src/services/propertyService.ts)
 
-- Zustand 스토어
-- `state-updated` 이벤트 시 상태 동기화
+- purchaseProperty(), canAffordPurchase()
 
----
+#### [NEW] [services/buildingService.ts](file:///e:/github_coop/blue-marble/src/services/buildingService.ts)
 
-### Phase 4: Core Components
+- buildVilla(), buildBuilding(), buildHotel()
 
-#### [NEW] [QRScanner.tsx](file:///E:/github_coop/blue-marble/client/components/QRScanner.tsx)
+#### [NEW] [services/tollCalculator.ts](file:///e:/github_coop/blue-marble/src/services/tollCalculator.ts)
 
-- Expo Camera 기반 QR 스캐너
-- `scan-qr` 이벤트 전송
+- calculateToll(), isMonopoly()
 
-#### [NEW] [BoardView.tsx](file:///E:/github_coop/blue-marble/client/components/BoardView.tsx)
+#### [NEW] [services/bankruptcyService.ts](file:///e:/github_coop/blue-marble/src/services/bankruptcyService.ts)
 
-- 32칸 보드판 시각화
-- 플레이어 위치 표시
+- sellBuilding(), sellLand(), declareBankruptcy()
 
 ---
 
-### Phase 5: Tests
+### Component: CLI
 
-#### [NEW] [bankruptcy.spec.ts](file:///E:/github_coop/blue-marble/server/tests/unit/bankruptcy.spec.ts)
+#### [NEW] [cli/prompts.ts](file:///e:/github_coop/blue-marble/src/cli/prompts.ts)
 
-- 플레이어 간 파산 시나리오
-- 은행 파산 시나리오
-- **(Constitution Required)**
+- readline 래퍼, 입력 처리 함수
 
-#### [NEW] [game.gateway.spec.ts](file:///E:/github_coop/blue-marble/server/tests/integration/game.gateway.spec.ts)
+#### [NEW] [cli/display.ts](file:///e:/github_coop/blue-marble/src/cli/display.ts)
 
-- WebSocket 연결/끊김 테스트
-- QR 스캔 검증 테스트
-- **(Constitution Required)**
+- 보드 상태 출력, 플레이어 정보 출력
+
+#### [NEW] [cli/gameLoop.ts](file:///e:/github_coop/blue-marble/src/cli/gameLoop.ts)
+
+- 메인 게임 루프, 턴 처리
+
+#### [NEW] [index.ts](file:///e:/github_coop/blue-marble/src/index.ts)
+
+- 엔트리 포인트, 메인 메뉴
+
+---
 
 ## Verification Plan
 
 ### Automated Tests
 
-1. **Unit Tests (서버)**
+```bash
+# 모든 단위 테스트 실행
+npm run test
+```
 
-   ```bash
-   cd server && npm test -- --testPathPattern=bankruptcy.spec
-   ```
+**테스트 케이스**:
 
-   - 플레이어 간 파산: 자산 승계 확인
-   - 은행 파산: 자산 초기화 확인
-
-2. **Integration Tests (서버)**
-
-   ```bash
-   cd server && npm test -- --testPathPattern=game.gateway.spec
-   ```
-
-   - WebSocket 연결/끊김/재연결
-   - QR 스캔 올바른/잘못된 시나리오
-
-3. **Client Tests**
-   ```bash
-   cd client && npm test
-   ```
-   - Zustand 스토어 상태 업데이트
+1. `tollCalculator.test.ts`: 합산 통행료 계산, 독점 2배
+2. `bankruptcyService.test.ts`: 건물/땅 매각 환급률
+3. `gameService.test.ts`: 더블 추가 턴, 출발점 월급
 
 ### Manual Verification
 
-1. **방 생성 및 입장** (User Required)
+```bash
+# 1. 게임 실행
+npm start
 
-   - 2개 기기에서 앱 실행
-   - 한 기기에서 방 생성 → 방 코드 확인
-   - 다른 기기에서 방 코드로 입장
-   - 두 기기에서 플레이어 목록 동기화 확인
+# 2. 새 게임 시작 (1 선택)
+# 3. 플레이어 2명 설정
+# 4. Enter로 주사위 굴림
+# 5. Y/N으로 땅 구매
+# 6. 건물 건설 메뉴 테스트
+# 7. 파산 상황 시뮬레이션
+# 8. 1명 남을 때 게임 종료 확인
+```
 
-2. **QR 스캔 검증** (User Required)
+---
 
-   - 주사위 결과 입력 후 도착지 표시 확인
-   - 올바른 칸 QR 스캔 → 위치 업데이트 확인
-   - 잘못된 칸 QR 스캔 → 에러 메시지 확인
+## Complexity Tracking
 
-3. **실시간 동기화** (User Required)
-   - 한 플레이어가 땅 구매 → 다른 플레이어 화면에 소유권 표시 확인
-   - 건물 건설 시 모든 화면에 건물 표시 확인
+| Violation                    | Why Needed                   | Simpler Alternative Rejected |
+| ---------------------------- | ---------------------------- | ---------------------------- |
+| 메모리 진실의 원천 (I)       | CLI 테스트 모드, 서버 불필요 | 서버 구축 오버엔지니어링     |
+| QR/양심 시스템 제거 (II~III) | 자동화된 테스트 환경         | 물리적 보드 필요             |
