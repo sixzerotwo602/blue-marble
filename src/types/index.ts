@@ -105,6 +105,7 @@ export interface Game {
   board: BoardTileState[];     // 40칸 상태
   lastDiceResult?: DiceResult; // 마지막 주사위 결과
   turnCount: number;           // 현재 턴 번호
+  doubleCount: number;         // 현재 플레이어의 연속 더블 횟수 (최대 3)
 }
 
 // ============================================================

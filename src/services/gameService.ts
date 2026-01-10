@@ -64,6 +64,7 @@ export function initializeGame(playerNames: string[]): Game {
     turnOrder,
     board: createInitialBoardState(),
     turnCount: 1,
+    doubleCount: 0,
   };
 }
 
@@ -127,14 +128,25 @@ export function handlePassStart(game: Game, playerId: string): void {
 // T049: 턴 종료
 // ============================================================
 
-/** 턴 종료 (더블 처리 포함) */
+/** 턴 종료 (더블 처리 포함, 3회 제한) */
 export function endTurn(game: Game): { nextPlayerId: string; isExtraTurn: boolean } {
   const isDouble = game.lastDiceResult?.isDouble ?? false;
 
   if (isDouble) {
-    // 더블이면 같은 플레이어가 추가 턴
-    const currentPlayerId = game.turnOrder[game.currentPlayerIndex];
-    return { nextPlayerId: currentPlayerId, isExtraTurn: true };
+    game.doubleCount++;
+    
+    // 3연속 더블이면 턴 종료 (추가 턴 없음)
+    if (game.doubleCount >= 3) {
+      game.doubleCount = 0;
+      // 다음 플레이어로 이동
+    } else {
+      // 추가 턴 (같은 플레이어)
+      const currentPlayerId = game.turnOrder[game.currentPlayerIndex];
+      return { nextPlayerId: currentPlayerId, isExtraTurn: true };
+    }
+  } else {
+    // 더블 아니면 카운트 리셋
+    game.doubleCount = 0;
   }
 
   // 다음 플레이어로 이동 (파산자 스킵)
