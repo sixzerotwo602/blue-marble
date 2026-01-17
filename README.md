@@ -1,116 +1,199 @@
-# 🎲 부루마블 (Blue Marble) CLI
+# Blue Marble (부루마블) 게임 엔진
 
-> 한국형 모노폴리 보드게임 CLI 버전
+TypeScript + Redux Toolkit 기반의 부루마블 게임 엔진입니다.
 
-## 📦 설치 및 실행
+## 📦 설치
 
 ```bash
-# 의존성 설치
 npm install
-
-# 빌드
-npm run build
-
-# 게임 실행
-npm start
-```
-
-## 🎮 게임 방법
-
-### 기본 진행
-
-1. 플레이어 수 입력 (2~4명)
-2. 플레이어 이름 입력
-3. 턴마다 주사위 굴리기 (Enter 또는 'r')
-4. 맵 보기 ('m' 또는 'map')
-
-### 게임 규칙
-
-- **초기 자금**: ₩2,000,000
-- **월급**: 출발점 통과 시 ₩200,000
-- **후반전**: 출발점 1회 통과 후 건설 가능 (한 턴에 별장/빌딩/호텔 순차 건설 가능)
-- **더블**: 추가 턴 (최대 3연속)
-- **파산**: 통행료 지불 불가 시 게임 종료
-
-## 🗺️ 맵 보기
-
-턴 시작 시 `m` 입력으로 전체 보드 확인:
-
-```
-========================================
-🗺️  전체 보드 맵
-========================================
-🏁 00 출발            ◆Alice,Bob
-① 01 타이베이       [Alic] V1
-① 02 황금열쇠
-...
-범례: V=별장, B=빌딩, H=호텔, ◆=플레이어 위치
-========================================
 ```
 
 ## 🧪 테스트
 
 ```bash
-# 단위 테스트 실행
 npm test
-
-# Watch 모드
-npm run test:watch
-
-# 시뮬레이션만 실행
-npm test -- src/services/simulation.test.ts
-
-# 엑셀 로그 생성 시뮬레이션
-npm test -- src/services/simulationExcel.test.ts
 ```
 
-### 테스트 구성
+## 🎮 빠른 시작
 
-| 파일                      | 테스트 수 | 내용                    |
-| ------------------------- | --------- | ----------------------- |
-| `diceService.test.ts`     | 4         | 주사위 범위, 더블 판정  |
-| `gameService.test.ts`     | 17        | 초기화, 이동, 턴 관리   |
-| `propertyService.test.ts` | 9         | 땅 구매 로직            |
-| `buildingService.test.ts` | 10        | 건설 조건, 비용         |
-| `tollCalculator.test.ts`  | 8         | 통행료 계산, 독점       |
-| `simulation.test.ts`      | 2         | 100게임 자동 시뮬레이션 |
-| `simulationExcel.test.ts` | 1         | 엑셀 로그 생성 (10게임) |
+### 1. 게임 초기화
+
+```typescript
+import { createTestStore } from "./src/core/state/store.js";
+import {
+  initializeGame,
+  addPlayer,
+  startGame,
+} from "./src/core/state/gameSlice.js";
+import { BOARD_DATA } from "./src/core/data/boardData.js";
+
+const store = createTestStore();
+
+// 게임 초기화 (시드로 결정론적 주사위)
+store.dispatch(initializeGame({ seed: "MY_SEED", tiles: [...BOARD_DATA] }));
+
+// 플레이어 추가 (2-4명)
+store.dispatch(addPlayer({ id: "p1", name: "플레이어 1" }));
+store.dispatch(addPlayer({ id: "p2", name: "플레이어 2" }));
+
+// 게임 시작
+store.dispatch(startGame());
+```
+
+### 2. 주사위 굴리기 & 이동
+
+```typescript
+import { DiceRoller } from "./src/core/logic/diceRoller.js";
+import { movePlayer } from "./src/core/state/gameSlice.js";
+
+const diceRoller = new DiceRoller("MY_SEED");
+const { sum, isDouble } = diceRoller.roll();
+
+store.dispatch(movePlayer({ playerId: "p1", steps: sum }));
+```
+
+### 3. 땅 구매
+
+```typescript
+import { buyLand } from "./src/core/state/gameSlice.js";
+
+store.dispatch(buyLand({ playerId: "p1", tileId: 1 }));
+```
+
+### 4. 건물 건설
+
+```typescript
+import { buildBuilding } from "./src/core/state/gameSlice.js";
+
+// 별장 (최대 2개)
+store.dispatch(
+  buildBuilding({ playerId: "p1", tileId: 1, buildingType: "villa" })
+);
+
+// 빌딩 (최대 1개)
+store.dispatch(
+  buildBuilding({ playerId: "p1", tileId: 1, buildingType: "building" })
+);
+
+// 호텔 (최대 1개)
+store.dispatch(
+  buildBuilding({ playerId: "p1", tileId: 1, buildingType: "hotel" })
+);
+```
+
+### 5. 통행료 지불
+
+```typescript
+import { payToll } from "./src/core/state/gameSlice.js";
+
+store.dispatch(payToll({ payerId: "p2", tileId: 1 }));
+```
+
+### 6. 턴 종료
+
+```typescript
+import { endTurn } from "./src/core/state/gameSlice.js";
+
+store.dispatch(endTurn());
+```
+
+---
+
+## 🤖 AI 시뮬레이션
+
+```typescript
+import {
+  runSimulation,
+  runMultipleSimulations,
+  aggregateResults,
+} from "./src/core/simulation/simulationRunner.js";
+
+// 단일 시뮬레이션
+const result = runSimulation({
+  maxTurns: 100,
+  aiStrategy: "PURCHASE_ALL", // 또는 'RANDOM'
+  seed: "SIM_1",
+});
+
+console.log(`승자: ${result.winnerId}`);
+console.log(`총 턴: ${result.totalTurns}`);
+
+// 다중 시뮬레이션
+const results = runMultipleSimulations(10, {
+  maxTurns: 100,
+  aiStrategy: "RANDOM",
+});
+const stats = aggregateResults(results);
+
+console.log(`AI1 승률: ${(stats.ai1Wins / stats.totalGames) * 100}%`);
+```
+
+---
+
+## 🖥️ TUI 대시보드
+
+```typescript
+import { printDashboard, renderDashboard } from "./src/core/tui/dashboard.js";
+
+// 전체 대시보드 출력 (콘솔 클리어 포함)
+printDashboard(store.getState().game);
+
+// 렌더링만 (문자열 반환)
+const output = renderDashboard(store.getState().game);
+console.log(output);
+```
+
+---
+
+## 📋 주요 액션
+
+| 액션                | 설명          |
+| :------------------ | :------------ |
+| `initializeGame`    | 게임 초기화   |
+| `addPlayer`         | 플레이어 추가 |
+| `startGame`         | 게임 시작     |
+| `movePlayer`        | 플레이어 이동 |
+| `buyLand`           | 땅 구매       |
+| `buildBuilding`     | 건물 건설     |
+| `payToll`           | 통행료 지불   |
+| `declareBankruptcy` | 파산 선언     |
+| `endTurn`           | 턴 종료       |
+| `giveCard`          | 카드 지급     |
+| `useCard`           | 카드 사용     |
+
+---
+
+## 🗺️ 보드 구성
+
+| 타일 ID | 타일 유형       |
+| :------ | :-------------- |
+| 0       | 시작            |
+| 1-9     | 도시 (아시아)   |
+| 10      | 무인도          |
+| 11-19   | 도시 (유럽)     |
+| 20      | 우주여행        |
+| 21-29   | 도시 (아메리카) |
+| 30      | 사회복지기금    |
+| 31-39   | 도시 (기타)     |
+
+---
 
 ## 📁 프로젝트 구조
 
 ```
-src/
-├── cli/             # CLI 인터페이스
-│   ├── display.ts   # 화면 출력
-│   ├── gameLoop.ts  # 게임 루프
-│   └── prompts.ts   # 사용자 입력
-├── data/            # 정적 데이터
-│   ├── boardData.ts # 40칸 보드 데이터
-│   └── constants.ts # 게임 상수
-├── services/        # 비즈니스 로직
-│   ├── diceService.ts
-│   ├── gameService.ts
-│   ├── propertyService.ts
-│   ├── buildingService.ts
-│   ├── tollCalculator.ts
-│   ├── bankruptcyService.ts
-│   └── simulationLogger.ts # 시뮬레이션 로깅
-├── types/           # 타입 정의
-│   └── index.ts
-└── index.ts         # 진입점
+src/core/
+├── ai/           # AI Agent (Random, Purchase-All)
+├── data/         # 40칸 보드 데이터
+├── logic/        # 주사위, 통행료 계산
+├── model/        # Player, Tile, GameState 타입
+├── simulation/   # 헤드리스 시뮬레이션
+├── state/        # Redux gameSlice
+└── tui/          # 대시보드, 입력 컨트롤러
+
+tests/core/       # 144개 단위 테스트
 ```
 
-## 🎯 주요 기능
-
-- ✅ 40칸 보드 (출발 → 시계방향)
-- ✅ 2~4인 멀티플레이어
-- ✅ 주사위 2개, 더블 시 추가턴 (3회 제한)
-- ✅ 땅 구매 및 통행료
-- ✅ 별장/빌딩/호텔 건설 (후반전, 복수 건설 가능)
-- ✅ 독점 시 통행료 2배
-- ✅ 자산 매각 및 파산 처리
-- ✅ 전체 맵 보기
-- ✅ 시뮬레이션 데이터 엑셀 추출 (`logs/`)
+---
 
 ## 📜 라이선스
 
