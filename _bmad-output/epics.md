@@ -51,6 +51,64 @@ AR4: **Effect Queue:** 연쇄적인 게임 이벤트를 처리하기 위해 Effe
 AR5: **Result Pattern:** 예외(Exception) 대신 `Result<T, E>`를 사용하여 로직 결과 처리.
 AR6: **Type Safety:** 모든 Action에 대해 Discriminated Union 사용.
 AR7: **Stress Test Support:** 10,000턴 이상의 고속 시뮬레이션 지원 (메모리 누수 방지).
+AR8: **Explicit FSM States & Guards:** 게임 엔진은 아래 상태와 전이 조건을 엄격히 준수해야 함. - **Core States (States):** - **TURN_START (대기):** 주사위 굴리기 입력 대기. - **MOVING (진행):** 말이 이동 중. - **PURCHASE_DECISION (대기):** 빈 땅 도착 시 구매(Y/N) 대기. - **BUILD_DECISION (대기):** 내 땅 도착 시 건설 대기. **[진입 조건: Player.isSecondHalf == true]** - **TOLL_PAYMENT (자동):** 남의 땅 도착 시 통행료 처리. - **LIQUIDATION (대기):** 파산 위기 시 매각 대기. - **SPECIAL_EVENT (가변):** 특수 지역 로직 수행. - **Guard Conditions (Context):** - 전반전/후반전은 **상태가 아닌 조건(Condition)**임. 후반전이 아니면 `BUILD_DECISION`을 건너뛰고 턴 종료. - 파산 여부는 `TOLL_PAYMENT` 실패 시 `LIQUIDATION`으로 가는 분기 조건임.
+
+### AR8 Reference: FSM State Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> TURN_START
+
+    state "TURN_START (대기)" as TURN_START
+    state "MOVING (이동중)" as MOVING
+    state "SPECIAL_EVENT (특수)" as SPECIAL_EVENT
+    state "TOLL_PAYMENT (통행료)" as TOLL_PAYMENT
+    state "LIQUIDATION (매각/파산)" as LIQUIDATION
+    state "PURCHASE_DECISION (구매)" as PURCHASE_DECISION
+    state "BUILD_DECISION (건설)" as BUILD_DECISION
+    state "TURN_END (턴종료)" as TURN_END
+    state "GAME_OVER (종료)" as GAME_OVER
+
+    %% 1. 턴 시작 및 주사위
+    TURN_START --> MOVING : Roll Dice
+
+    %% 2. 도착 분기 (Arrival Logic)
+    state arrival_fork <<choice>>
+    MOVING --> arrival_fork : Arrive at Tile
+
+    %% 3. 분기별 전이
+    arrival_fork --> SPECIAL_EVENT : Type Special
+    arrival_fork --> PURCHASE_DECISION : Type City No Owner
+    arrival_fork --> TOLL_PAYMENT : Type City Owner Not Me
+    arrival_fork --> my_land_check : Type City Owner Is Me
+
+    %% 4. 특수 지역 처리
+    SPECIAL_EVENT --> TURN_END : Done
+
+    %% 5. 구매 로직
+    PURCHASE_DECISION --> TURN_END : Buy or Pass
+
+    %% 6. 건설 로직 (Guard Condition: 후반전)
+    state my_land_check <<choice>>
+    my_land_check --> BUILD_DECISION : Condition isSecondHalf
+    my_land_check --> TURN_END : Condition Not SecondHalf
+
+    BUILD_DECISION --> TURN_END : Build or Pass
+
+    %% 7. 통행료 및 파산 로직
+    state toll_check <<choice>>
+    TOLL_PAYMENT --> toll_check : Auto Calculate
+
+    toll_check --> TURN_END : Pay Success
+    toll_check --> LIQUIDATION : Pay Fail No Cash
+
+    LIQUIDATION --> toll_check : Sell Asset
+    LIQUIDATION --> GAME_OVER : Declare Bankruptcy
+
+    %% 8. 턴 종료 및 순환
+    TURN_END --> TURN_START : Next Player
+    TURN_END --> TURN_START : Double Same Player
+```
 
 ### FR Coverage Map
 
