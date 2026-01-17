@@ -56,6 +56,7 @@ export interface DiceResult {
 export class DiceRoller {
   private rng: () => number;
   private rollCount: number = 0;
+  private lastResult: DiceResult | null = null;
 
   constructor(seed: string) {
     const seedArray = cyrb128(seed);
@@ -71,12 +72,22 @@ export class DiceRoller {
     const dice1 = Math.floor(this.rng() * 6) + 1;
     const dice2 = Math.floor(this.rng() * 6) + 1;
 
-    return {
+    const result = {
       dice1,
       dice2,
       sum: dice1 + dice2,
       isDouble: dice1 === dice2,
     };
+    
+    this.lastResult = result;
+    return result;
+  }
+  
+  /**
+   * 마지막 주사위 결과 반환
+   */
+  getLastRoll(): DiceResult | null {
+    return this.lastResult;
   }
 
   /**

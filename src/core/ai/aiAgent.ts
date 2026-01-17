@@ -22,130 +22,70 @@ export type AIAction =
 /**
  * AI 전략 타입
  */
-export type AIStrategy = 'RANDOM' | 'PURCHASE_ALL' | 'CONSERVATIVE';
+/**
+ * AI 전략 타입
+ */
+export type AIStrategy = 'RANDOM' | 'PURCHASE_ALL' | 'CONSERVATIVE' | 'SMART';
+
+// ... (existing interfaces)
 
 /**
- * AI 의사결정 컨텍스트
+ * Smart 전략 - 전략적 판단
+ * - 구매: 잔고의 30% 이상 남으면 구매
+ * - 건설: 잔고의 20% 이상 남으면 최대 건설
+ * - 경매: 자산 가치 판단 (구현 예정)
  */
-export interface AIContext {
-  state: GameState;
-  player: Player;
-  currentTile: Tile;
-  availableActions: AIAction['type'][];
-}
-
-/**
- * AI 에이전트 인터페이스
- */
-export interface AIAgent {
-  strategy: AIStrategy;
-  decide: (context: AIContext) => AIAction;
-}
-
-/**
- * Random 전략 - 무작위로 유효한 액션 선택
- */
-export function createRandomAgent(): AIAgent {
+export function createSmartAgent(): AIAgent {
   return {
-    strategy: 'RANDOM',
+    strategy: 'SMART',
     decide: (context: AIContext): AIAction => {
       const { player, currentTile, availableActions, state } = context;
 
-      // 무인도에 갇혀있고 탈출권이 있으면 사용
+      // 무인도 탈출
       if (player.jailTurnsRemaining > 0 && player.heldCards.includes('ISLAND_ESCAPE')) {
-        if (Math.random() > 0.5) {
-          return { type: 'USE_CARD', cardType: 'ISLAND_ESCAPE' };
-        }
+        return { type: 'USE_CARD', cardType: 'ISLAND_ESCAPE' };
       }
 
-      // 경매 중이면 50% 확률로 입찰
+      // 경매: 보수적 입찰 (자금 30% 이하까지)
       if (state.currentAuction && availableActions.includes('PLACE_BID')) {
-        if (Math.random() > 0.5) {
-          const bidAmount = (state.currentAuction.currentBid ?? 0) + 10000;
-          if (player.money >= bidAmount) {
-            return { type: 'PLACE_BID', amount: bidAmount };
-          }
+        const bidAmount = (state.currentAuction.currentBid ?? 0) + 10000;
+        if (player.money >= bidAmount && bidAmount <= player.money * 0.3) {
+          return { type: 'PLACE_BID', amount: bidAmount };
         }
         return { type: 'PASS_AUCTION' };
       }
 
-      // 빈 땅에 있고 구매 가능하면 50% 확률로 구매
+      // 빈 땅 구매 결정
       if (currentTile.ownerId === null && currentTile.type === 'city') {
-        if (player.money >= (currentTile.landPrice ?? 0)) {
-          if (Math.random() > 0.5) {
+        const price = currentTile.landPrice ?? 0;
+        if (player.money >= price) {
+          const remainingAfter = player.money - price;
+          // 잔고의 30%는 남겨야 함
+          if (remainingAfter >= player.money * 0.3) {
             return { type: 'BUY_LAND', tileId: currentTile.id };
           }
         }
         return { type: 'SKIP_BUY' };
       }
 
-      // 내 땅에 있고 DEVELOPMENT 페이즈면 50% 확률로 건설
-      if (currentTile.ownerId === player.id && state.phase === 'DEVELOPMENT') {
-        if (player.money >= (currentTile.buildingPrice ?? 0)) {
-          if (Math.random() > 0.5) {
-            return { type: 'BUILD', tileId: currentTile.id, buildingType: 'villa' };
-          }
-        }
-      }
-
-      // 기본: 주사위 굴리기 또는 턴 종료
-      if (availableActions.includes('ROLL_DICE')) {
-        return { type: 'ROLL_DICE' };
-      }
-
-      return { type: 'END_TURN' };
-    },
-  };
-}
-
-/**
- * Purchase-All 전략 - 살 수 있으면 무조건 구매
- */
-export function createPurchaseAllAgent(): AIAgent {
-  return {
-    strategy: 'PURCHASE_ALL',
-    decide: (context: AIContext): AIAction => {
-      const { player, currentTile, availableActions, state } = context;
-
-      // 무인도에 갇혀있고 탈출권이 있으면 즉시 사용
-      if (player.jailTurnsRemaining > 0 && player.heldCards.includes('ISLAND_ESCAPE')) {
-        return { type: 'USE_CARD', cardType: 'ISLAND_ESCAPE' };
-      }
-
-      // 경매 중이면 자금 50% 이하까지 입찰
-      if (state.currentAuction && availableActions.includes('PLACE_BID')) {
-        const bidAmount = (state.currentAuction.currentBid ?? 0) + 10000;
-        if (player.money >= bidAmount && bidAmount <= player.money * 0.5) {
-          return { type: 'PLACE_BID', amount: bidAmount };
-        }
-        return { type: 'PASS_AUCTION' };
-      }
-
-      // 빈 땅에 있으면 무조건 구매
-      if (currentTile.ownerId === null && currentTile.type === 'city') {
-        if (player.money >= (currentTile.landPrice ?? 0)) {
-          return { type: 'BUY_LAND', tileId: currentTile.id };
-        }
-        return { type: 'SKIP_BUY' };
-      }
-
-      // 내 땅에 있고 DEVELOPMENT 페이즈면 건설
+      // 건설 결정
       if (currentTile.ownerId === player.id && state.phase === 'DEVELOPMENT') {
         const buildingPrice = currentTile.buildingPrice ?? 0;
-        
-        // 호텔 → 빌딩 → 별장 순으로 시도
-        if (currentTile.buildings.hotel < 1 && player.money >= buildingPrice * 5) {
+        const minReserve = player.money * 0.2; // 최소 20% 보유
+
+        // 호텔 → 빌딩 → 별장 순으로 시도 (자금 여유 확인)
+        if (currentTile.buildings.hotel < 1 && player.money - (buildingPrice * 5) >= minReserve) {
           return { type: 'BUILD', tileId: currentTile.id, buildingType: 'hotel' };
         }
-        if (currentTile.buildings.building < 1 && player.money >= buildingPrice * 3) {
+        if (currentTile.buildings.building < 1 && player.money - (buildingPrice * 3) >= minReserve) {
           return { type: 'BUILD', tileId: currentTile.id, buildingType: 'building' };
         }
-        if (currentTile.buildings.villa < 2 && player.money >= buildingPrice) {
+        if (currentTile.buildings.villa < 2 && player.money - buildingPrice >= minReserve) {
           return { type: 'BUILD', tileId: currentTile.id, buildingType: 'villa' };
         }
       }
 
-      // 기본: 주사위 굴리기 또는 턴 종료
+      // 기본 동작
       if (availableActions.includes('ROLL_DICE')) {
         return { type: 'ROLL_DICE' };
       }
@@ -165,8 +105,9 @@ export function createAIAgent(strategy: AIStrategy): AIAgent {
     case 'PURCHASE_ALL':
       return createPurchaseAllAgent();
     case 'CONSERVATIVE':
-      // 보수적 전략 (기본은 Random으로)
       return createRandomAgent();
+    case 'SMART':
+      return createSmartAgent();
     default:
       return createRandomAgent();
   }
