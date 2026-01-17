@@ -128,7 +128,9 @@ export function getMenuOptions(state: GameState): MenuOption[] {
   switch (state.turnPhase) {
     case 'TURN_START':
       return getTurnStartOptions(player);
-    case 'LANDED':
+    case 'MOVING':
+    case 'PURCHASE_DECISION':
+    case 'BUILD_DECISION':
       return getLandedOptions(state, player, tile);
     default:
       return [{ label: '✅ 턴 종료', value: 'END_TURN' }];

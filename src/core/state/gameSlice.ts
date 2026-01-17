@@ -234,6 +234,20 @@ export const gameSlice = createSlice({
     },
 
     /**
+     * 무인도 탈출 비용 지불 (Story 1.7)
+     */
+    payBail: (state, action: PayloadAction<{ playerId: string }>) => {
+      const player = state.players.find(p => p.id === action.payload.playerId);
+      if (!player) return;
+
+      const BAIL_AMOUNT = 200000;
+      if (player.money >= BAIL_AMOUNT) {
+        player.money -= BAIL_AMOUNT;
+        player.jailTurnsRemaining = 0;
+      }
+    },
+
+    /**
      * 우주여행 상태 설정 (Story 1.7)
      * 다음 턴에 원하는 위치로 이동 가능
      */
@@ -675,6 +689,7 @@ export const {
   buyLand,
   sendToIsland,
   tryEscapeIsland,
+  payBail,
   setSpaceTravelReady,
   spaceTravelTo,
   handleSocialFund,

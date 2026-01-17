@@ -8,6 +8,10 @@ import {
   initializeGame, 
   addPlayer, 
   startGame, 
+  movePlayer,
+  payToll,
+  declareBankruptcy,
+  endTurn
 } from '../state/gameSlice.js';
 import { BOARD_DATA } from '../data/boardData.js';
 import { printDashboard, clearConsole } from './dashboard.js';
@@ -46,7 +50,7 @@ async function main() {
   }
 
   // Initialize
-  store.dispatch(initializeGame({ tiles: [...BOARD_DATA] }));
+  store.dispatch(initializeGame({ seed: 'MANUAL_TEST', tiles: [...BOARD_DATA] }));
   
   for (let i = 1; i <= playerCount; i++) {
     store.dispatch(addPlayer({ id: `p${i}`, name: `Player ${i}` }));
@@ -100,62 +104,44 @@ async function main() {
     const selectedOption = options[selectedOptionIndex];
     
     // Action Logic
-    if (selectedOption.value === 'ROLL_DICE') {
-      // Manual Dice roll logic needs to dispatch result or let diceRoller handle it if integrated
-      // Existing mapOptionToAction calculates logic? No, let's see mapOptionToAction.
-      // mapOptionToAction returns { type: 'game/rollDice' } which is a reducer action.
-      // But reducer usually needs payload if it's deterministic or it uses Math.random inside?
-      // Let's check logic. In loggedSimulationRunner, we rolled dice manually and dispatched 'movePlayer'.
-      // If 'game/rollDice' reducer exists and handles logic, we use it. 
-      // Checking gameSlice is important. If gameSlice.rollDice only changes state based on random, it might accept payload.
-      
-      // Allow user to set dice value? Or random?
-      // "Random" for now, or "Manual Control" usually implies playing the game, so random is fine.
-      
-      // However, check if 'game/rollDice' exists.
-      // 'gameSlice.ts' imports suggest 'movePlayer' is used, not 'rollDice' reducer commonly.
-      // Let's assume we handle 'ROLL_DICE' specially here to keep it simple and clean.
-    }
-
-    // Execute Action
-    if (selectedOption.value === 'ROLL_DICE') {
-         // Special handling for rolling to show animation or result
-         const result = diceRoller.roll();
-         // We need to move player. 
-         // !WAIT! loggedSimulationRunner uses `movePlayer` with steps.
-         // Does `mapOptionToAction` return `game/rollDice`?
-         // Let's look at `inputController.ts`: `return { type: 'game/rollDice' };`
-         // I need to check `gameSlice.ts` to see if it handles `rollDice` action.
-         // If not, I should handle it manually here.
-         
-         // Assuming manual handling is safer:
-         console.log(`🎲 주사위를 굴립니다... [${result.dice1}, ${result.dice2}] 합: ${result.sum}`);
-         // Dispatch move
-         // We need to import `movePlayer` action creator.
-         // But I cannot easily import it if I don't import from gameSlice. I did.
-         // Wait, `movePlayer` is imported.
-    }
-
-    // Mapping Action
-    // The `mapOptionToAction` returns a plain object `{ type: ..., payload: ... }`.
-    // We should use the action creators from `gameSlice.ts` for type safety if possible, 
-    // OR just use store.dispatch(action).
-    // But `inputController.ts` returns raw objects. 
-    
-    // Let's handle generic dispatch, but intercept ROLL_DICE because we likely need to generate the number.
-    
-    const tileId = currentPlayer.position; // Current position for context
+    const tileId = currentPlayer.position;
     const action = mapOptionToAction(selectedOption.value, currentPlayer.id, tileId);
     
     if (selectedOption.value === 'ROLL_DICE') {
         const result = diceRoller.roll();
-        // Since `gameSlice` likely expects `movePlayer` with `steps`, and `rollDice` might not exist or be a thunk.
-        // Let's import `movePlayer` and dispatch it directly.
-        // I need to update imports.
+        console.log(`\n🎲 주사위 굴리기: [${result.dice1}, ${result.dice2}] (합: ${result.sum})`);
         
-        // Simulating the store dispatch
-        const { movePlayer } = await import('../state/gameSlice.js');
         store.dispatch(movePlayer({ playerId: currentPlayer.id, steps: result.sum }));
+
+        // Post-Move Logic (Toll & Bankruptcy)
+        const stateAfterMove = store.getState().game;
+        const movedPlayer = stateAfterMove.players.find(p => p.id === currentPlayer.id);
+        
+        if (movedPlayer) {
+          const currentTile = stateAfterMove.tiles.find(t => t.id === movedPlayer.position);
+          
+          // Toll Check
+          if (currentTile && currentTile.ownerId && currentTile.ownerId !== movedPlayer.id) {
+             const owner = stateAfterMove.players.find(p => p.id === currentTile.ownerId);
+             if (owner && !owner.isBankrupt) {
+               // Capture money before to show exact toll paid
+               const moneyBefore = movedPlayer.money;
+               store.dispatch(payToll({ payerId: movedPlayer.id, tileId: currentTile.id }));
+               const moneyAfter = store.getState().game.players.find(p => p.id === movedPlayer.id)?.money ?? 0;
+               const paidAmount = moneyBefore - moneyAfter;
+
+               if (paidAmount > 0) {
+                   console.log(`💸 ${currentTile.name} 도착: ${owner.name}에게 통행료 ${paidAmount}원을 지불했습니다.`);
+               }
+
+               // Bankruptcy Check
+               if (moneyAfter < 0) {
+                  console.log(`💀 자금 부족으로 파산 처리됩니다.`);
+                  store.dispatch(declareBankruptcy({ playerId: movedPlayer.id, creditorId: owner.id }));
+               }
+             }
+          }
+        }
         
         await askQuestion('엔터를 누르면 계속합니다...');
         continue;
@@ -164,22 +150,6 @@ async function main() {
     if (action) {
         store.dispatch(action);
     } else if (selectedOption.value === 'SKIP_BUY') {
-        // Just end turn or move phase?
-        // SKIP_BUY usually implies ending the purchase opp.
-        // If there is no explicit action, maybe we need to advance phase manually or `endTurn`?
-        // Let's check `gameSlice` logic for skipping. Usually passing `endTurn` or specific `skip` action.
-        // `inputController` returned null for SKIP_BUY.
-        // We probably need to check if we should dispatch `endTurn` or just do nothing (if phase auto-updates? unlikely).
-        // Let's assume we dispatch `endTurn` or add a `skipBuy` action if it exists.
-        // Based on logSimulation, `SKIP_BUY` just logged and did nothing? 
-        // Ah, in log sim, if `SKIP_BUY`, it just broke switch.
-        // But the loop continues to `End Turn Logic`.
-        // So effectively it ends turn? 
-        // In this TUI loop, if we don't dispatch anything, state doesn't change, we loop again. 
-        // So we MUST dispatch something or Change Phase.
-        // If `SKIP_BUY`, likely we just `endTurn`.
-        
-        const { endTurn } = await import('../state/gameSlice.js');
         store.dispatch(endTurn());
     }
 
