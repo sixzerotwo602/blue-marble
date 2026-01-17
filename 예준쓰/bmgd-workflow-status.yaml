@@ -1,0 +1,77 @@
+# Workflow Status Template (BMGD)
+
+# This tracks progress through BMGD methodology Pre-production, Design, and Technical phases.
+# Implementation phase is tracked separately in sprint-status.yaml
+
+# STATUS DEFINITIONS:
+# ==================
+# Initial Status (before completion):
+#   - required: Must be completed to progress
+#   - optional: Can be completed but not required
+#   - recommended: Strongly suggested but not required
+#   - conditional: Required only if certain conditions met (e.g., if_narrative_focused)
+#
+# Completion Status:
+#   - {file-path}: File created/found (e.g., "docs/gdd.md")
+#   - skipped: Optional/conditional workflow that was skipped
+
+generated: "2026-01-14T20:24:16+09:00"
+project: "보드뱅크"
+project_type: "new_game"
+selected_track: "gamedev"
+field_type: "greenfield"
+workflow_path: "gamedev-greenfield.yaml"
+workflow_status:
+  - phase: 0
+    name: "Pre-production"
+    status: active
+    workflows:
+      - id: "brainstorm-game"
+        status: _bmad-output/brainstorming-session-2026-01-14.md
+        agent: "game-designer"
+        command: "brainstorm-game"
+        note: "Creative exploration and ideation for game concepts"
+      - id: "game-brief"
+        status: skipped
+        agent: "game-designer"
+        command: "create-game-brief"
+        note: "Recommended for greenfield game projects"
+  - phase: 1
+    name: "Design"
+    status: completed
+    workflows:
+      - id: "gdd"
+        status: _bmad-output/gdd.md
+        agent: "game-designer"
+        command: "create-gdd"
+        output: "Game Design Document with mechanics, systems, and content"
+      - id: "narrative"
+        status: skipped
+        agent: "game-designer"
+        command: "narrative"
+        note: "For story-driven games - determined after GDD"
+  - phase: 2
+    name: "Technical"
+    status: active
+    workflows:
+      - id: "game-architecture"
+        status: required
+        agent: "game-architect"
+        command: "create-architecture"
+        output: "Game architecture document with systems and patterns"
+        note: "Complete technical design for game systems"
+      - id: "test-framework"
+        status: recommended
+        agent: "game-qa"
+        command: "test-framework"
+        output: "Game testing framework setup"
+        note: "Set up automated testing early"
+  - phase: 3
+    name: "Production"
+    status: pending
+    workflows:
+      - id: "sprint-planning"
+        status: required
+        agent: "game-scrum-master"
+        command: "sprint-planning"
+        note: "Creates sprint plan - subsequent work tracked in sprint-status.yaml"
