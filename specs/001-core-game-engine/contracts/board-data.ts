@@ -104,9 +104,6 @@ export const FUND_DONATE_AMOUNT = 150000;
 /** 우주여행 이용료 */
 export const TRAVEL_FEE = 200000;
 
-/** 무인도 탈출 비용 */
-export const ISLAND_ESCAPE_FEE = 50000;
-
 /** 출발 통과 월급 */
 export const SALARY = 200000;
 
