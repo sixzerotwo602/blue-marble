@@ -260,6 +260,41 @@ AI 봇들이 자율적으로 여러 판을 플레이하여 게임 밸런스를 �
 
 ---
 
+## Data Sources *(reference)*
+
+게임 엔진 구현 시 아래 데이터 파일을 **Single Source of Truth**로 사용한다.
+
+### 보드 데이터: `rulemd/board-data.ts`
+
+| Export | 설명 |
+|--------|------|
+| `BoardTileData` | 타일 인터페이스 (id, index, name, type, colorGroup, price, buildingPrices, rentLevels, canBuild) |
+| `BOARD_TILES` | 40칸 보드 배열 - 모든 타일의 상세 데이터 |
+| `SPECIAL_TILES` | 특수 타일 인덱스 (출발:0, 무인도:10, 접수:20, 우주여행:30, 기부:38, 황금열쇠:[2,5,12,16,22,32]) |
+| `NO_BUILD_PROPERTIES` | 건설 불가 부동산 [6, 25, 39] (제주도, 부산, 서울) |
+| `FUND_DONATE_AMOUNT` | 사회복지기금 기부 금액 (150,000원) |
+| `TRAVEL_FEE` | 우주여행 이용료 (200,000원) |
+| `SALARY` | 출발 통과 월급 (200,000원) |
+| `TOTAL_TILES` | 총 칸 수 (40) |
+| `TOTAL_DEEDS` | 총 증서 수 (29) |
+
+### 황금열쇠 카드: `rulemd/golden-key-cards.ts`
+
+| Export | 설명 |
+|--------|------|
+| `GoldenKeyCardData` | 카드 인터페이스 (id, name, message, effectType, destinationIndex, moveBackSteps, value, buildingFees, canHold, sellPrice, quantity) |
+| `GOLDEN_KEY_CARDS` | 27종 카드 배열 - 모든 카드 효과 및 속성 |
+| `CARD_DISTRIBUTION` | 카드 종류별 개수 (MOVE_TO:10, RECEIVE:5, BUILDING_FEE:3, PAY:3 등) |
+| `HOLDABLE_CARDS` | 보관 가능 카드 ID ['card-05', 'card-06'] (탈출권, 우대권) |
+| `DUPLICATE_CARDS` | 2장 존재하는 카드 ID ['card-01', 'card-06', 'card-07', 'card-08'] |
+
+### 관련 열거형: `rulemd/enums.ts`
+
+- `TileType`: 타일 유형 (START, PROPERTY, VEHICLE, GOLDEN_KEY, ISLAND, TRAVEL, FUND_RECEIVE, FUND_DONATE)
+- `CardEffectType`: 카드 효과 유형 (MOVE_TO, MOVE_BACK, RECEIVE, PAY, BUILDING_FEE, FORCE_SELL, ISLAND_ESCAPE, TOLL_EXEMPT, WORLD_TOUR, TO_ISLAND, COLLECT_FROM_ALL, SPECIAL)
+
+---
+
 ## Assumptions
 
 - 기존 `rulemd/board-data.ts`와 `rulemd/golden-key-cards.ts` 파일의 게임 데이터를 재사용한다
